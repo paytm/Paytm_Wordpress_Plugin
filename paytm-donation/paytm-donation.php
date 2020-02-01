@@ -12,6 +12,8 @@
 //ini_set('display_errors','On');
 register_activation_hook(__FILE__, 'paytm_activation');
 register_deactivation_hook(__FILE__, 'paytm_deactivation');
+require_once(__DIR__.'/includes/PaytmHelper.php');
+require_once(__DIR__.'/includes/PaytmChecksum.php');
 
 // do not conflict with WooCommerce Paytm Plugin Callback
 if(!isset($_GET["wc-api"])){
@@ -26,9 +28,17 @@ add_shortcode( 'paytmcheckout', 'paytm_donation_handler' );
 if(isset($_GET['donation_msg']) && $_GET['donation_msg'] != ""){
 	add_action('the_content', 'paytmDonationShowMessage');
 }
-
+add_action('plugins_loaded', 'paytmHelperInit');
+add_action('plugins_loaded', 'paytmChecksumInit');
 function paytmDonationShowMessage($content){
 	return '<div class="box">'.htmlentities(urldecode($_GET['donation_msg'])).'</div>'.$content;
+}
+ function getCallbackUrl(){
+	if(!empty(PaytmConstantsDonation::CUSTOM_CALLBACK_URL)){
+		return PaytmConstantsDonation::CUSTOM_CALLBACK_URL;
+	}else{
+		get_permalink();
+	}	
 }
 		
 function paytm_activation() {
@@ -89,6 +99,19 @@ function paytm_activation() {
 
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 		dbDelta($sql);
+	$table_name_paytm = $wpdb->prefix . 'paytm_donation_order_data';
+echo    $sql_paytm = "CREATE TABLE IF NOT EXISTS $table_name_paytm (
+			`id` int(11) NOT NULL AUTO_INCREMENT,
+			`order_id` int(11) NOT NULL,
+			`paytm_order_id` VARCHAR(255) NOT NULL,
+			`transaction_id` VARCHAR(255) NOT NULL,
+			`status` ENUM('0', '1')  DEFAULT '0' NOT NULL,
+			`paytm_response` TEXT,
+			`date_added` DATETIME NOT NULL,
+			`date_modified` DATETIME NOT NULL,
+			PRIMARY KEY (`id`)
+		);";			
+     $wpdb->query($sql_paytm);
 
 	if($newpages){
 		wp_cache_delete( 'all_page_ids', 'pages' );
@@ -101,6 +124,10 @@ function paytm_deactivation() {
 	foreach ($settings as $setting) {
 		delete_option($setting['name']);
 	}
+	$table_name = $wpdb->prefix . 'paytm_donation_order_data';
+	$sql = "DROP TABLE IF EXISTS $table_name";
+	require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+    dbDelta($sql);
 }
 
 function paytm_settings_list(){
@@ -120,7 +147,7 @@ function paytm_settings_list(){
 			'hint'    => 'Merchant Secret Key Provided by Paytm'
 		),
 		array(
-			'display' => 'Website',
+			'display' => 'Website Name',
 			'name'    => 'paytm_website',
 			'value'   => '',
 			'type'    => 'textbox',
@@ -133,26 +160,19 @@ function paytm_settings_list(){
 			'type'    => 'textbox',
 			'hint'    => 'Industry Type Provided by Paytm'
 		),
-		array(
-			'display' => 'Channel ID',
-			'name'    => 'paytm_channel_id',
-			'value'   => 'WEB',
-			'type'    => 'textbox',
-			'hint'    => 'Channel ID Provided by Paytm e.g. WEB/WAP'
-		),
-		array(
-			'display' => 'Transaction URL',
-			'name'    => 'transaction_url',
-			'value'   => '',
-			'type'    => 'textbox',
-			'hint'    => 'Transaction URL Provided by Paytm'
-		),
-		array(
-			'display' => 'Transaction Status URL',
-			'name'    => 'transaction_status_url',
-			'value'   => '',
-			'type'    => 'textbox',
-			'hint'    => 'Transaction Status URL Provided by Paytm'
+		// array(
+		// 	'display' => 'Channel ID',
+		// 	'name'    => 'paytm_channel_id',
+		// 	'value'   => 'WEB',
+		// 	'type'    => 'textbox',
+		// 	'hint'    => 'Channel ID Provided by Paytm e.g. WEB/WAP'
+		// ),
+		'environment' => array(
+			'display'			=>'Environment',
+			'type'			=> 'select',
+			'name'          => 'paytm_payment_environment',
+			'values'		=> array("0" => "Staging", "1" => "Production"),
+			'hint'	=> 'Select environment.'
 		),
 		array(
 			'display' => 'Default Amount',
@@ -164,7 +184,7 @@ function paytm_settings_list(){
 		array(
 			'display' => 'Default Button/Link Text',
 			'name'    => 'paytm_content',
-			'value'   => 'Paytm',
+			'value'   => PaytmConstantsDonation::PAYTM_PAYMENT_BUTTON_TEXT,
 			'type'    => 'textbox',
 			'hint'    => 'the default text to be used for buttons or links if none is provided'
 		)				
@@ -180,21 +200,35 @@ if (is_admin()) {
 
 
 function paytm_admin_menu() {
-	add_menu_page('Paytm Donation', 'Paytm Donation', 'manage_options', 'paytm_options_page', 'paytm_options_page', plugin_dir_url(__FILE__).'assets/logo.ico');
+	add_menu_page('Paytm Donation', 'Paytm Donation', 'manage_options', 'paytm_options_page', 'paytm_options_page', plugin_dir_url(__FILE__).'images/logo.png');
 
 	add_submenu_page('paytm_options_page', 'Paytm Donation Settings', 'Settings', 'manage_options', 'paytm_options_page');
 
-	add_submenu_page('paytm_options_page', 'Paytm Donation Payment Details', 'Payment Details', 'manage_options', 'wp_paytm_donation', 'wp_paytm_donation_listings_page');
+	add_submenu_page('paytm_options_page', 'Paytm Donation Payment Details', 'Payment History', 'manage_options', 'wp_paytm_donation', 'wp_paytm_donation_listings_page');
 	
 	require_once(dirname(__FILE__) . '/paytm-donation-listings.php');
 }
 
 
 function paytm_options_page() {
+	$curl_version = PaytmHelper::getcURLversion();
+	$paytm_payment_environment = get_option('paytm_payment_environment');
+
+		if(empty($curl_version)){
+			$settingFormHtml= '<div class="paytm_response error-box">'. PaytmConstantsDonation::ERROR_CURL_DISABLED .'</div>';
+		}
+		// Transaction URL is not working properly or not able to communicate with paytm
+		if(!empty(PaytmHelper::getTransactionStatusURL($paytm_payment_environment))){
+			$response = (array)wp_remote_get(PaytmHelper::getTransactionStatusURL($paytm_payment_environment));
+			if(!empty($response['errors'])){
+				$settingFormHtml= '<div class="paytm_response error-box">'. PaytmConstantsDonation::ERROR_CURL_WARNING .'</div>';
+			}
+		}
 	echo	'<div class="wrap">
 				<h1>Paytm Configuarations</h1>
 				<form method="post" action="options.php">';
 					wp_nonce_field('update-options');
+					echo $settingFormHtml;
 					echo '<table class="form-table">';
 						$settings = paytm_settings_list();
 						foreach($settings as $setting){
@@ -205,14 +239,14 @@ function paytm_options_page() {
 								echo $setting['no'].' <input type="'.$setting['type'].'" name="'.$setting['name'].'" value="0" '.(get_option($setting['name']) == 0 ? 'checked="checked"' : "").' />';
 		
 							} elseif ($setting['type']=='select') {
-								echo '<select name="'.$setting['name'].'">';
+								echo '<select name="'.$setting['name'].'" required="required">';
 								foreach ($setting['values'] as $value=>$name) {
 									echo '<option value="'.$value.'" ' .(get_option($setting['name'])==$value? '  selected="selected"' : ''). '>'.$name.'</option>';
 								}
 								echo '</select>';
 
 							} else {
-								echo '<input type="'.$setting['type'].'" name="'.$setting['name'].'" value="'.get_option($setting['name']).'" />';
+								echo '<input type="'.$setting['type'].'" name="'.$setting['name'].'" value="'.get_option($setting['name']).'" required="required" />';
 							}
 
 							echo '<p class="description" id="tagline-description">'.$setting['hint'].'</p>';
@@ -235,21 +269,19 @@ function paytm_options_page() {
 								</tr>
 							</table>
 						</form>';
+			
+		$last_updated = date("d F Y", strtotime(PaytmConstantsDonation::LAST_UPDATED)) .' - '.PaytmConstantsDonation::PLUGIN_VERSION;
 
-			$last_updated = "";
-			$path = plugin_dir_path( __FILE__ ) . "/paytm_version.txt";
-			if(file_exists($path)){
-				$handle = fopen($path, "r");
-				if($handle !== false){
-					$date = fread($handle, 10); // i.e. DD-MM-YYYY or 25-04-2018
-					$last_updated = '<p>Last Updated: '. date("d F Y", strtotime($date)) .'</p>';
-				}
-			}
+		$footer_text = '<div style="text-align: center;"><hr/>';
+		$footer_text .= '<strong>'.__('PHP Version').'</strong> '. PHP_VERSION . ' | ';
+		$footer_text .= '<strong>'.__('cURL Version').'</strong> '. $curl_version . ' | ';
+		$footer_text .= '<strong>'.__('Wordpress Version').'</strong> '. get_bloginfo( 'version' ) . ' | ';
+		$footer_text .= '<strong>'.__('Last Updated').'</strong> '. $last_updated. ' | ';
+		$footer_text .= '<a href="'.PaytmConstantsDonation::PLUGIN_DOC_URL.'" target="_blank">Developer Docs</a>';
+		$footer_text .= '</div>';
 
-			include( ABSPATH . WPINC . '/version.php' );
-			$footer_text = '<hr/><div class="text-center">'.$last_updated.'<p>Wordpress Version: '. $wp_version .'</p></div><hr/>';
+		echo $footer_text;
 
-			echo $footer_text.'</div>';
 }
 
 
@@ -321,6 +353,7 @@ function paytm_donation_form(){
 
 function paytm_donation_submit(){
 
+
 	$valid = true; // default input validation flag
 	$html = '';
 	$msg = '';
@@ -358,7 +391,7 @@ function paytm_donation_submit(){
 
 	if($valid){
 		
-		require_once(dirname(__FILE__) . '/lib/encdec_paytm.php');
+		
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . "paytm_donation";
@@ -383,13 +416,13 @@ function paytm_donation_submit(){
 		}
 
 		$order_id = $wpdb->insert_id;
-
+        $order_id=PaytmHelper::getPaytmOrderId($order_id);
 		// $order_id = 'TEST_'.strtotime("now").'-'.$order_id; //just for testing
 
 		$post_params = array(
 			'MID' => trim(get_option('paytm_merchant_id')),
 			'WEBSITE' => trim(get_option('paytm_website')),
-			'CHANNEL_ID' =>  trim(get_option('paytm_channel_id')),
+			'CHANNEL_ID' =>  PaytmConstantsDonation::CHANNEL_ID,
 			'INDUSTRY_TYPE_ID' =>  trim(get_option('paytm_industry_type_id')),
 			'ORDER_ID' => $order_id,
 			'TXN_AMOUNT' => sanitize_text_field($_POST['donor_amount']),
@@ -398,12 +431,13 @@ function paytm_donation_submit(){
 			'CALLBACK_URL' => get_permalink(),
 		);		
 	
-		$post_params["CHECKSUMHASH"] = PaytmDonation::getChecksumFromArray(	$post_params,
+		$post_params["CHECKSUMHASH"] = PaytmChecksum::generateSignature(	$post_params,
 																				trim(get_option('paytm_merchant_key'))
 																			);
 
+		$post_params["X-REQUEST-ID"] 	=  PaytmConstantsDonation::X_REQUEST_ID . PaytmConstantsDonation::PLUGIN_VERSION;
 		$form_action = trim(get_option('transaction_url'))."?orderid=".$order_id;
-
+		$form_action = trim(PaytmHelper::getTransactionURL(get_option('paytm_payment_environment')))."?orderid=".$order_id;
 
 		$html = "<center><h1>Please do not refresh this page...</h1></center>";
 
@@ -417,7 +451,6 @@ function paytm_donation_submit(){
 		$html .= '<script type="text/javascript">document.f1.submit();</script>';
 
 		return $html;
-
 	} else {
 		return $msg;
 	}
@@ -441,27 +474,52 @@ function paytm_donation_response(){
 	
 	if(! empty($_POST) && isset($_POST['ORDERID'])){
 
-		require_once(dirname(__FILE__) . '/lib/encdec_paytm.php');
 		global $wpdb;
 
 		$paytm_merchant_key = trim(get_option('paytm_merchant_key'));
 		$paytm_merchant_id = trim(get_option('paytm_merchant_id'));
-		$transaction_status_url = trim(get_option('transaction_status_url'));
+		if(!empty($_POST['CHECKSUMHASH'])){
+			$post_checksum = $_POST['CHECKSUMHASH'];
+			unset($_POST['CHECKSUMHASH']);	
+		}else{
+			$post_checksum = "";
+		}
+		 $transaction_status_url = trim(PaytmHelper::getTransactionStatusURL(get_option('paytm_payment_environment')));
+		 if(PaytmChecksum::verifySignature($_POST, $paytm_merchant_key, $post_checksum) === true) {
+					$order_id = !empty($_POST['ORDERID'])? PaytmHelper::getOrderId($_POST['ORDERID']) : 0;
 
-		if(PaytmDonation::verifychecksum_e($_POST, $paytm_merchant_key, $_POST['CHECKSUMHASH']) === "TRUE") {
-			
-			if($_POST['RESPCODE'] == "01"){
+					/* save paytm response in db */
+					if(PaytmConstants::SAVE_PAYTM_RESPONSE && !empty($_POST['STATUS'])){
+						$order_data_id = saveTxnResponse1($_POST, PaytmHelper::getOrderId($_POST['ORDERID']));
+					}
+					/* save paytm response in db */
+			if($order_id){
 
 				// Create an array having all required parameters for status query.
 				$requestParamList = array("MID" => $paytm_merchant_id, "ORDERID" => $_POST['ORDERID']);
-
-				// $_POST['ORDERID'] = substr($_POST['ORDERID'], strpos($_POST['ORDERID'], "-") + 1); // just for testing
 				
-				$StatusCheckSum = PaytmDonation::getChecksumFromArray($requestParamList, $paytm_merchant_key);
+				$StatusCheckSum = PaytmChecksum::generateSignature($requestParamList, $paytm_merchant_key);
 
 				$requestParamList['CHECKSUMHASH'] = $StatusCheckSum;
+				
+				/* number of retries untill cURL gets success */
+				$retry = 1;
+				do{
+					$responseParamList = PaytmHelper::executecUrl($transaction_status_url, $requestParamList);
+					$retry++;
+				} while(!$responseParamList['STATUS'] && $retry < PaytmConstantsDonation::MAX_RETRY_COUNT);
+				/* number of retries untill cURL gets success */
+				if(!isset($responseParamList['STATUS'])){
+					$responseParamList = $_POST;
+				}
 
-				$responseParamList = PaytmDonation::callNewAPI($transaction_status_url, $requestParamList);
+				/* save paytm response in db */
+				if(PaytmConstants::SAVE_PAYTM_RESPONSE && !empty($responseParamList['STATUS'])){
+					saveTxnResponse1($responseParamList, PaytmHelper::getOrderId($responseParamList['ORDERID']), $order_data_id);
+				}
+				/* save paytm response in db */
+			
+			
 
 				if($responseParamList['STATUS'] == 'TXN_SUCCESS' && $responseParamList['TXNAMOUNT'] == $_POST['TXNAMOUNT']) {
 					$msg = "Thank you for your order. Your transaction has been successful.";
@@ -480,6 +538,7 @@ function paytm_donation_response(){
 			$msg = "Security error!";
 			$wpdb->query($wpdb->prepare("UPDATE ".$wpdb->prefix . "paytm_donation SET payment_status = 'Payment Error' WHERE  id = %d", sanitize_text_field($_POST['ORDERID'])));
 		}
+		
 
 		$redirect_url = get_site_url() . '/' . get_permalink(get_the_ID());
 		//echo $redirect_url ."<br />";
@@ -520,7 +579,7 @@ function curltest_donation($content){
 			$testing_urls = array(
 											$server,
 											"https://www.gstatic.com/generate_204",
-											get_option('transaction_status_url')
+											PaytmHelper::getTransactionStatusURL(get_option('paytm_payment_environment'))
 										);
 		}
 
@@ -564,3 +623,24 @@ function curltest_donation($content){
 /*
 * Code to test Curl
 */
+/**
+	* save response in db
+	*/
+	function saveTxnResponse1($data  = array(),$order_id, $id = false){
+		global $wpdb;
+		if(empty($data['STATUS'])) return false;
+		
+		$status 			= (!empty($data['STATUS']) && $data['STATUS'] =='TXN_SUCCESS') ? 1 : 0;
+		$paytm_order_id 	= (!empty($data['ORDERID'])? $data['ORDERID']:'');
+		$transaction_id 	= (!empty($data['TXNID'])? $data['TXNID']:'');
+		
+		if($id !== false){
+			$sql =  "UPDATE `" . $wpdb->prefix . "paytm_donation_order_data` SET `order_id` = '" . $order_id . "', `paytm_order_id` = '" . $paytm_order_id . "', `transaction_id` = '" . $transaction_id . "', `status` = '" . (int)$status . "', `paytm_response` = '" . json_encode($data) . "', `date_modified` = NOW() WHERE `id` = '" . (int)$id . "' AND `paytm_order_id` = '" . $paytm_order_id . "'";
+			$wpdb->query($sql);
+			return $id;
+		}else{
+			$sql =  "INSERT INTO `" . $wpdb->prefix . "paytm_donation_order_data` SET `order_id` = '" . $order_id . "', `paytm_order_id` = '" . $paytm_order_id . "', `transaction_id` = '" . $transaction_id . "', `status` = '" . (int)$status . "', `paytm_response` = '" . json_encode($data) . "', `date_added` = NOW(), `date_modified` = NOW()";
+			$wpdb->query($sql);
+			return $wpdb->insert_id;
+		}
+	}
