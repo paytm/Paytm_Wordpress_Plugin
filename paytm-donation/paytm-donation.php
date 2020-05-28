@@ -489,7 +489,7 @@ function paytm_donation_response(){
 					$order_id = !empty($_POST['ORDERID'])? PaytmHelper::getOrderId($_POST['ORDERID']) : 0;
 
 					/* save paytm response in db */
-					if(PaytmConstants::SAVE_PAYTM_RESPONSE && !empty($_POST['STATUS'])){
+					if(PaytmConstantsDonation::SAVE_PAYTM_RESPONSE && !empty($_POST['STATUS'])){
 						$order_data_id = saveTxnResponse1($_POST, PaytmHelper::getOrderId($_POST['ORDERID']));
 					}
 					/* save paytm response in db */
@@ -514,7 +514,7 @@ function paytm_donation_response(){
 				}
 
 				/* save paytm response in db */
-				if(PaytmConstants::SAVE_PAYTM_RESPONSE && !empty($responseParamList['STATUS'])){
+				if(PaytmConstantsDonation::SAVE_PAYTM_RESPONSE && !empty($responseParamList['STATUS'])){
 					saveTxnResponse1($responseParamList, PaytmHelper::getOrderId($responseParamList['ORDERID']), $order_data_id);
 				}
 				/* save paytm response in db */
