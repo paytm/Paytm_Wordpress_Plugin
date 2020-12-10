@@ -1,8 +1,8 @@
 <?php
 require_once(__DIR__.'/PaytmConstantsDonation.php');
 function paytmHelperInit () {
-if(!class_exists('PaytmHelper')) :
-class PaytmHelper{
+if(!class_exists('PaytmHelperDonation')) :
+class PaytmHelperDonation{
 
 	/**
 	* include timestap with order id
@@ -32,6 +32,17 @@ class PaytmHelper{
 			return PaytmConstantsDonation::TRANSACTION_URL_PRODUCTION;
 		}else{
 			return PaytmConstantsDonation::TRANSACTION_URL_STAGING;			
+		}
+	}
+	
+	/**
+	* Get Initiate URL
+	*/
+	public static function getInitiateURL($isProduction = 0){		
+		if($isProduction == 1){
+			return PaytmConstantsDonation::BLINKCHECKOUT_URL_PRODUCTION;
+		}else{
+			return PaytmConstantsDonation::BLINKCHECKOUT_URL_STAGING;			
 		}
 	}
 	/**
@@ -71,15 +82,39 @@ class PaytmHelper{
 	public static function executecUrl($apiURL, $requestParamList) {
 
         $jsonResponse = wp_remote_post($apiURL, array(
-            'headers'     => array(),
-            'body'        => json_encode($requestParamList),
+            'headers'     => array("Content-Type"=> "application/json"),
+            'body'        => json_encode($requestParamList,JSON_UNESCAPED_SLASHES),
         ));
 
         //$response_code = wp_remote_retrieve_response_code( $jsonResponse );
         $response_body = wp_remote_retrieve_body( $jsonResponse );
         $responseParamList = json_decode($response_body, true);
         return $responseParamList;
-    }
+	}
+	/*
+	* Stting up Dynamic Callback Messages
+	*/
+	public static function setCallbackMsgPaytm($message)
+	{
+		session_start();
+		$_SESSION['callback_response']= $message;
+		/* echo $_SESSION['callback_response'];
+		die(); */
+	}
+	/*
+	* Stting up Dynamic Callback Messages
+	*/
+	public static function getCallbackMsgPaytm()
+	{
+		//session_start();
+		$msg='';
+		if(isset($_SESSION['callback_response']) && $_SESSION['callback_response']!='')
+		{
+			$msg= '<div class="box">'.htmlentities($_SESSION['callback_response']).'</div>';
+			unset($_SESSION['callback_response']);
+		}
+		return $msg;
+	}
 
 }
 endif;

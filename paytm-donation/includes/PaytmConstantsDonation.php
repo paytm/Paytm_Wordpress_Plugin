@@ -7,9 +7,12 @@ class PaytmConstantsDonation{
 	CONST TRANSACTION_URL_STAGING				= "https://securegw-stage.paytm.in/order/process";
 	CONST TRANSACTION_STATUS_URL_STAGING		= "https://securegw-stage.paytm.in/order/status";
 
+	CONST BLINKCHECKOUT_URL_STAGING				= "https://securegw-stage.paytm.in";
+	CONST BLINKCHECKOUT_URL_PRODUCTION			= "https://securegw.paytm.in";
+
 	CONST SAVE_PAYTM_RESPONSE 					= true;
 	CONST CHANNEL_ID							= "WEB";
-	CONST APPEND_TIMESTAMP						= false;
+	CONST APPEND_TIMESTAMP						= true;
 	CONST X_REQUEST_ID							= "PLUGIN_WORDPRESS_";
 
 	CONST MAX_RETRY_COUNT						= 3;

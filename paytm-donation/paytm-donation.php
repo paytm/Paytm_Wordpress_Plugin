@@ -26,13 +26,24 @@ add_shortcode( 'paytmcheckout', 'paytm_donation_handler' );
 
 
 if(isset($_GET['donation_msg']) && $_GET['donation_msg'] != ""){
-	add_action('the_content', 'paytmDonationShowMessage');
+	//add_action('the_content', 'paytmDonationShowMessage');
 }
 add_action('plugins_loaded', 'paytmHelperInit');
 add_action('plugins_loaded', 'paytmChecksumInit');
 function paytmDonationShowMessage($content){
 	return '<div class="box">'.htmlentities(urldecode($_GET['donation_msg'])).'</div>'.$content;
 }
+/* Enqueue Javascript File */
+function paytmDonation_enqueue_script() {   
+    wp_enqueue_script( 'paytmDonation_script', plugin_dir_url( __FILE__ ) . 'assets/js/paytm-donation.js','','', true);
+}
+add_action('wp_enqueue_scripts', 'paytmDonation_enqueue_script');
+/* Enqueue Stylesheet */
+function paytmDonation_enqueue_style() {
+    wp_enqueue_style('paytmDonation', plugin_dir_url( __FILE__ ) . 'assets/css/paytm-donation.css', array(), '', '');
+}
+add_action('wp_head', 'paytmDonation_enqueue_style');
+
  function getCallbackUrl(){
 	if(!empty(PaytmConstantsDonation::CUSTOM_CALLBACK_URL)){
 		return PaytmConstantsDonation::CUSTOM_CALLBACK_URL;
@@ -167,7 +178,7 @@ function paytm_settings_list(){
 		// 	'type'    => 'textbox',
 		// 	'hint'    => 'Channel ID Provided by Paytm e.g. WEB/WAP'
 		// ),
-		'environment' => array(
+		array(
 			'display'			=>'Environment',
 			'type'			=> 'select',
 			'name'          => 'paytm_payment_environment',
@@ -187,7 +198,21 @@ function paytm_settings_list(){
 			'value'   => PaytmConstantsDonation::PAYTM_PAYMENT_BUTTON_TEXT,
 			'type'    => 'textbox',
 			'hint'    => 'the default text to be used for buttons or links if none is provided'
-		)				
+		),
+		/* array(
+			'display'			=>'Enable Blink Checkout',
+			'type'			=> 'select',
+			'name'          => 'paytm_enable_blinkcheckout',
+			'values'		=> array("0" => "No", "1" => "yes"),
+			'hint'	=> 'Enable/Disable Blink Checkout'
+		), */
+		array(
+			'display'			=>'Enable Address Fields',
+			'type'			=> 'select',
+			'name'          => 'paytm_enable_address',
+			'values'		=> array("1" => "yes","0" => "No"),
+			'hint'	=> 'Enable/Disable Address Fields'
+		)			
 	);
 	return $settings;
 }
@@ -211,15 +236,15 @@ function paytm_admin_menu() {
 
 
 function paytm_options_page() {
-	$curl_version = PaytmHelper::getcURLversion();
+	$curl_version = PaytmHelperDonation::getcURLversion();
 	$paytm_payment_environment = get_option('paytm_payment_environment');
-
+	$settingFormHtml='';
 		if(empty($curl_version)){
 			$settingFormHtml= '<div class="paytm_response error-box">'. PaytmConstantsDonation::ERROR_CURL_DISABLED .'</div>';
 		}
 		// Transaction URL is not working properly or not able to communicate with paytm
-		if(!empty(PaytmHelper::getTransactionStatusURL($paytm_payment_environment))){
-			$response = (array)wp_remote_get(PaytmHelper::getTransactionStatusURL($paytm_payment_environment));
+		if(!empty(PaytmHelperDonation::getTransactionStatusURL($paytm_payment_environment))){
+			$response = (array)wp_remote_get(PaytmHelperDonation::getTransactionStatusURL($paytm_payment_environment));
 			if(!empty($response['errors'])){
 				$settingFormHtml= '<div class="paytm_response error-box">'. PaytmConstantsDonation::ERROR_CURL_WARNING .'</div>';
 			}
@@ -295,16 +320,25 @@ function paytm_register_settings() {
 function paytm_donation_handler(){
 
 	if(isset($_REQUEST["action"]) && $_REQUEST["action"] == "paytm_donation_request"){
-		return paytm_donation_submit();
+		return paytm_donation_form();
+		//return paytm_donation_form();
 	} else {
 		return paytm_donation_form();
 	}
 }
-
+add_action('wp', 'paytmStartSession');
+function paytmStartSession() {
+    if (session_status() == PHP_SESSION_NONE) {
+		session_start();
+	}
+}
 function paytm_donation_form(){
 	$current_url = "//".$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
-	$html = ""; 
-	$html = '<form name="frmTransaction" method="post">
+	$paytm_enable_address = get_option('paytm_enable_address');
+	$paytm_address_id= $paytm_enable_address==0?'hide-address':'';
+	$html = PaytmHelperDonation::getCallbackMsgPaytm(); 
+	$html .= '<form name="frmTransaction" method="post">
+	<div class="paytm-pg-donar-info">
 					<p>
 						<label for="donor_name">Name:</label>
 						<input type="text" name="donor_name" maxlength="255" value=""/>
@@ -320,7 +354,8 @@ function paytm_donation_form(){
 					<p>
 						<label for="donor_amount">Amount:</label>
 						<input type="text" name="donor_amount" maxlength="10" value="'.trim(get_option('paytm_amount')).'"/>
-					</p>
+					</p></div>
+					<div class="paytm-pg-donar-address" id='.$paytm_address_id.'>
 					<p>
 						<label for="donor_address">Address:</label>
 						<input type="text" name="donor_address" maxlength="255" value=""/>
@@ -341,70 +376,38 @@ function paytm_donation_form(){
 						<label for="donor_country">Country:</label>
 						<input type="text" name="donor_country" maxlength="255" value=""/>
 					</p>
+					</div>
 					<p>
 						<input type="hidden" name="action" value="paytm_donation_request">
-						<input type="submit" value="' . trim(get_option('paytm_content')) .'"/>
+						<input type="submit" value="' . trim(get_option('paytm_content')) .'" id="paytm-blinkcheckout" data-action="'.admin_url( 'admin-ajax.php' ).'?action=initiate_blinkCheckout" data-id="'.get_the_ID().'" />
 					</p>
-				</form>';
+				</form><script type="application/javascript" crossorigin="anonymous" src="'.PaytmHelperDonation::getInitiateURL(get_option('paytm_payment_environment')).'/merchantpgpui/checkoutjs/merchants/'.trim(get_option('paytm_merchant_id')).'.js"></script>';
 	
 	return $html;
 }
+add_action('wp_ajax_initiate_blinkCheckout','initiate_blinkCheckout');
+add_action('wp_ajax_nopriv_initiate_blinkCheckout','initiate_blinkCheckout');
+function initiate_blinkCheckout()
+{
+	extract($_REQUEST);
+	$paytmParams = array();
+	$txntoken = '';
 
-
-function paytm_donation_submit(){
-
-
-	$valid = true; // default input validation flag
-	$html = '';
-	$msg = '';
-			
-	if( trim($_POST['donor_name']) != ''){
-		$donor_name = $_POST['donor_name'];
-	} else {
-		$valid = false;
-		$msg.= 'Name is required </br>';
-	}
-			
-	if( trim($_POST['donor_email']) != ''){
-		$donor_email = $_POST['donor_email'];
-		if( preg_match("/([\w\-]+\@[\w\-]+\.[\w\-]+)/" , $donor_email)){}
-		else{
-			$valid = false;
-			$msg.= 'Invalid email format </br>';
-		}
-	} else {
-		$valid = false;
-		$msg.= 'E-mail is required </br>';
-	}
-				
-	if( trim($_POST['donor_amount']) != ''){
-		$donor_amount = $_POST['donor_amount'];
-		if( (is_numeric($donor_amount)) && ( (strlen($donor_amount) > '1') || (strlen($donor_amount) == '1')) ){}
-		else{
-			$valid = false;
-			$msg.= 'Amount cannot be less then $1</br>';
-		}
-	} else {
-		$valid = false;
-		$msg.= 'Amount is required </br>';
-	}
-
-	if($valid){
-		
-		
+	if(!empty($txnAmount) && (int)$txnAmount > 0)
+	{
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . "paytm_donation";
 		$data = array(
-					'name' => sanitize_text_field($_POST['donor_name']),
-					'email' => sanitize_email($_POST['donor_email']),
-					'phone' => sanitize_text_field($_POST['donor_phone']),
-					'address' => sanitize_text_field($_POST['donor_address']),
-					'city' => sanitize_text_field($_POST['donor_city']),
-					'country' => sanitize_text_field($_POST['donor_country']),
-					'state' => sanitize_text_field($_POST['donor_state']),
-					'zip' => sanitize_text_field($_POST['donor_postal_code']),
-					'amount' => sanitize_text_field($_POST['donor_amount']),
+					'name' => sanitize_text_field($name),
+					'email' => sanitize_email($email),
+					'phone' => sanitize_text_field($phone),
+					'address' => sanitize_text_field($address),
+					'city' => sanitize_text_field($city),
+					'country' => sanitize_text_field($country),
+					'state' => sanitize_text_field($state),
+					'zip' => sanitize_text_field($postalcode),
+					'amount' => sanitize_text_field($txnAmount),
 					'payment_status' => 'Pending Payment',
 					'date' => date('Y-m-d H:i:s'),
 				);
@@ -416,44 +419,42 @@ function paytm_donation_submit(){
 		}
 
 		$order_id = $wpdb->insert_id;
-        $order_id=PaytmHelper::getPaytmOrderId($order_id);
-		// $order_id = 'TEST_'.strtotime("now").'-'.$order_id; //just for testing
+		$order_id=PaytmHelperDonation::getPaytmOrderId($order_id);
+		/* body parameters */
+		$paytmParams["body"] = array(
+			"requestType" => "Payment",
+			"mid" => trim(get_option('paytm_merchant_id')),
+			"websiteName" => trim(get_option('paytm_website')),
+			"orderId" => $order_id,
+			"callbackUrl" => get_permalink($id),
+			"txnAmount" => array(
+				"value" => $txnAmount,
+				"currency" => "INR",
+			),
+			"userInfo" => array(
+				"custId" => sanitize_email($email),
+			),
+		);
+		
+		$checksum = PaytmChecksum::generateSignature(json_encode($paytmParams['body'], JSON_UNESCAPED_SLASHES),trim(get_option('paytm_merchant_key')));
+		$paytmParams["head"] = array(
+			"signature"	=> $checksum
+		);
 
-		$post_params = array(
-			'MID' => trim(get_option('paytm_merchant_id')),
-			'WEBSITE' => trim(get_option('paytm_website')),
-			'CHANNEL_ID' =>  PaytmConstantsDonation::CHANNEL_ID,
-			'INDUSTRY_TYPE_ID' =>  trim(get_option('paytm_industry_type_id')),
-			'ORDER_ID' => $order_id,
-			'TXN_AMOUNT' => sanitize_text_field($_POST['donor_amount']),
-			'CUST_ID' => sanitize_email($_POST['donor_email']),
-			'EMAIL' => sanitize_email($_POST['donor_email']),
-			'CALLBACK_URL' => get_permalink(),
-		);		
-	
-		$post_params["CHECKSUMHASH"] = PaytmChecksum::generateSignature(	$post_params,
-																				trim(get_option('paytm_merchant_key'))
-																			);
-
-		$post_params["X-REQUEST-ID"] 	=  PaytmConstantsDonation::X_REQUEST_ID . PaytmConstantsDonation::PLUGIN_VERSION;
-		$form_action = trim(get_option('transaction_url'))."?orderid=".$order_id;
-		$form_action = trim(PaytmHelper::getTransactionURL(get_option('paytm_payment_environment')))."?orderid=".$order_id;
-
-		$html = "<center><h1>Please do not refresh this page...</h1></center>";
-
-		$html .= '<form method="post" action="'.$form_action.'" name="f1">';
-
-		foreach($post_params as $k=>$v){
-			$html .= '<input type="hidden" name="'.$k.'" value="'.$v.'">';
+		$url = trim(PaytmHelperDonation::getInitiateURL(get_option('paytm_payment_environment')))."/theia/api/v1/initiateTransaction?mid=".$paytmParams["body"]['mid']."&orderId=".$paytmParams["body"]['orderId'];
+		$res= PaytmHelperDonation::executecUrl($url,$paytmParams);
+		if(!empty($res['body']['resultInfo']['resultStatus']) && $res['body']['resultInfo']['resultStatus'] == 'S'){
+			$txntoken = $res['body']['txnToken'];
 		}
 
-		$html .= "</form>";
-		$html .= '<script type="text/javascript">document.f1.submit();</script>';
-
-		return $html;
-	} else {
-		return $msg;
 	}
+
+	if(!empty($txntoken)){
+		echo json_encode(array('success'=> true,'txnToken' => $txntoken, 'txnAmount' => $txnAmount, 'orderId' =>$paytmParams["body"]['orderId'] ));
+	}else{
+		echo json_encode(array('success'=> false,'txnToken' => '','data'=>$res));
+	}
+	die();
 }
 
 function paytm_donation_meta_box() {
@@ -484,13 +485,13 @@ function paytm_donation_response(){
 		}else{
 			$post_checksum = "";
 		}
-		 $transaction_status_url = trim(PaytmHelper::getTransactionStatusURL(get_option('paytm_payment_environment')));
+		 $transaction_status_url = trim(PaytmHelperDonation::getTransactionStatusURL(get_option('paytm_payment_environment')));
 		 if(PaytmChecksum::verifySignature($_POST, $paytm_merchant_key, $post_checksum) === true) {
-					$order_id = !empty($_POST['ORDERID'])? PaytmHelper::getOrderId($_POST['ORDERID']) : 0;
+					$order_id = !empty($_POST['ORDERID'])? PaytmHelperDonation::getOrderId($_POST['ORDERID']) : 0;
 
 					/* save paytm response in db */
 					if(PaytmConstantsDonation::SAVE_PAYTM_RESPONSE && !empty($_POST['STATUS'])){
-						$order_data_id = saveTxnResponse1($_POST, PaytmHelper::getOrderId($_POST['ORDERID']));
+						$order_data_id = saveTxnResponse1($_POST, PaytmHelperDonation::getOrderId($_POST['ORDERID']));
 					}
 					/* save paytm response in db */
 			if($order_id){
@@ -505,7 +506,7 @@ function paytm_donation_response(){
 				/* number of retries untill cURL gets success */
 				$retry = 1;
 				do{
-					$responseParamList = PaytmHelper::executecUrl($transaction_status_url, $requestParamList);
+					$responseParamList = PaytmHelperDonation::executecUrl($transaction_status_url, $requestParamList);
 					$retry++;
 				} while(!$responseParamList['STATUS'] && $retry < PaytmConstantsDonation::MAX_RETRY_COUNT);
 				/* number of retries untill cURL gets success */
@@ -515,7 +516,7 @@ function paytm_donation_response(){
 
 				/* save paytm response in db */
 				if(PaytmConstantsDonation::SAVE_PAYTM_RESPONSE && !empty($responseParamList['STATUS'])){
-					saveTxnResponse1($responseParamList, PaytmHelper::getOrderId($responseParamList['ORDERID']), $order_data_id);
+					saveTxnResponse1($responseParamList, PaytmHelperDonation::getOrderId($responseParamList['ORDERID']), $order_data_id);
 				}
 				/* save paytm response in db */
 			
@@ -526,8 +527,9 @@ function paytm_donation_response(){
 					$wpdb->query($wpdb->prepare("UPDATE ".$wpdb->prefix . "paytm_donation SET payment_status = 'Complete Payment' WHERE  id = %d", sanitize_text_field($_POST['ORDERID'])));
 				
 				} else  {
-					$msg = "It seems some issue in server to server communication. Kindly connect with administrator.";
-					$wpdb->query($wpdb->prepare("UPDATE ".$wpdb->prefix . "paytm_donation SET payment_status = 'Fraud Payment' WHERE id = %d", sanitize_text_field($_POST['ORDERID'])));
+					//$msg = "It seems some issue in server to server communication. Kindly connect with administrator.";
+					$msg = "Thank You. However, the transaction has been Failed For Reason: " . sanitize_text_field($_POST['RESPMSG']);
+					$wpdb->query($wpdb->prepare("UPDATE ".$wpdb->prefix . "paytm_donation SET payment_status = 'Payment failed' WHERE id = %d", sanitize_text_field($_POST['ORDERID'])));
 				}
 
 			} else {
@@ -540,9 +542,12 @@ function paytm_donation_response(){
 		}
 		
 
-		$redirect_url = get_site_url() . '/' . get_permalink(get_the_ID());
+		//$redirect_url = get_site_url() . '/' . get_permalink(get_the_ID());
+		$redirect_url = get_permalink(get_the_ID());
 		//echo $redirect_url ."<br />";
-		$redirect_url = add_query_arg( array('donation_msg'=> urlencode($msg)));
+		PaytmHelperDonation::setCallbackMsgPaytm($msg);
+
+		$redirect_url = add_query_arg( array());
 		wp_redirect( $redirect_url,301 );
 		exit;
 	}
@@ -579,7 +584,7 @@ function curltest_donation($content){
 			$testing_urls = array(
 											$server,
 											"https://www.gstatic.com/generate_204",
-											PaytmHelper::getTransactionStatusURL(get_option('paytm_payment_environment'))
+											PaytmHelperDonation::getTransactionStatusURL(get_option('paytm_payment_environment'))
 										);
 		}
 
