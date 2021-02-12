@@ -111,7 +111,7 @@ function paytm_activation() {
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 		dbDelta($sql);
 	$table_name_paytm = $wpdb->prefix . 'paytm_donation_order_data';
-echo    $sql_paytm = "CREATE TABLE IF NOT EXISTS $table_name_paytm (
+  $sql_paytm = "CREATE TABLE IF NOT EXISTS $table_name_paytm (
 			`id` int(11) NOT NULL AUTO_INCREMENT,
 			`order_id` int(11) NOT NULL,
 			`paytm_order_id` VARCHAR(255) NOT NULL,
@@ -165,20 +165,6 @@ function paytm_settings_list(){
 			'hint'    => 'Website Name Provided by Paytm'
 		),
 		array(
-			'display' => 'Industry Type',
-			'name'    => 'paytm_industry_type_id',
-			'value'   => '',
-			'type'    => 'textbox',
-			'hint'    => 'Industry Type Provided by Paytm'
-		),
-		// array(
-		// 	'display' => 'Channel ID',
-		// 	'name'    => 'paytm_channel_id',
-		// 	'value'   => 'WEB',
-		// 	'type'    => 'textbox',
-		// 	'hint'    => 'Channel ID Provided by Paytm e.g. WEB/WAP'
-		// ),
-		array(
 			'display'			=>'Environment',
 			'type'			=> 'select',
 			'name'          => 'paytm_payment_environment',
@@ -199,13 +185,6 @@ function paytm_settings_list(){
 			'type'    => 'textbox',
 			'hint'    => 'the default text to be used for buttons or links if none is provided'
 		),
-		/* array(
-			'display'			=>'Enable Blink Checkout',
-			'type'			=> 'select',
-			'name'          => 'paytm_enable_blinkcheckout',
-			'values'		=> array("0" => "No", "1" => "yes"),
-			'hint'	=> 'Enable/Disable Blink Checkout'
-		), */
 		array(
 			'display'			=>'Enable Address Fields',
 			'type'			=> 'select',
