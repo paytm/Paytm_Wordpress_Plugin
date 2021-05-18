@@ -37,10 +37,12 @@ function paytmDonationJs() {
             } else {
                 var url = jQuery(this).data('action');
                 var id = jQuery(this).data('id');
+                var pversion = jQuery(this).data('pversion');
+                var wpversion = jQuery(this).data('wpversion');
                 jQuery.ajax({
                     url: url,
                     method: "POST",
-                    data: { "txnAmount": donor_amount, 'email': donor_email, "name": donor_name, 'phone': donor_phone, "address": donor_address, 'city': donor_city, "state": donor_state, 'country': donor_country, "postalcode": donor_postal_code, "id": id },
+                    data: { "txnAmount": donor_amount, 'email': donor_email, "name": donor_name, 'phone': donor_phone, "address": donor_address, 'city': donor_city, "state": donor_state, 'country': donor_country, "postalcode": donor_postal_code, "id": id  },
                     dataType: 'JSON',
                     beforeSend: function() {},
                     success: function(result) {
@@ -52,6 +54,10 @@ function paytmDonationJs() {
                                     "token": result.txnToken,
                                     "tokenType": "TXN_TOKEN",
                                     "amount": result.txnAmount,
+                                },
+                                "integration": {
+                                    "platform": "Wordpress Donation",
+                                    "version": wpversion+"|"+pversion
                                 },
                                 handler: {
                                     notifyMerchant: function notifyMerchant(eventName, data) {

@@ -3,7 +3,7 @@
  * Plugin Name: Paytm Payment Donation
  * Plugin URI: https://github.com/Paytm-Payments/
  * Description: This plugin allow you to accept donation payments using Paytm. This plugin will add a simple form that user will fill, when he clicks on submit he will redirected to Paytm website to complete his transaction and on completion his payment, paytm will send that user back to your website along with transactions details. This plugin uses server-to-server verification to add additional security layer for validating transactions. Admin can also see all transaction details with payment status by going to "Paytm Payment Details" from menu in admin.
- * Version: 1.0
+ * Version: 1.1
  * Author: Paytm
  * Author URI: http://paywithpaytm.com/
  * Text Domain: Paytm Payments
@@ -316,6 +316,7 @@ function paytm_donation_form(){
 	$paytm_enable_address = get_option('paytm_enable_address');
 	$paytm_address_id= $paytm_enable_address==0?'hide-address':'';
 	$html = PaytmHelperDonation::getCallbackMsgPaytm(); 
+	$plugin_data = get_plugin_data( __FILE__ );
 	$html .= '<form name="frmTransaction" method="post">
 	<div class="paytm-pg-donar-info">
 					<p>
@@ -358,7 +359,7 @@ function paytm_donation_form(){
 					</div>
 					<p>
 						<input type="hidden" name="action" value="paytm_donation_request">
-						<input type="submit" value="' . trim(get_option('paytm_content')) .'" id="paytm-blinkcheckout" data-action="'.admin_url( 'admin-ajax.php' ).'?action=initiate_blinkCheckout" data-id="'.get_the_ID().'" />
+						<input type="submit" value="' . trim(get_option('paytm_content')) .'" id="paytm-blinkcheckout" data-wpversion="'.get_bloginfo( 'version' ).'" data-pversion="'.$plugin_data['Version'].'" data-action="'.admin_url( 'admin-ajax.php' ).'?action=initiate_blinkCheckout" data-id="'.get_the_ID().'" />
 					</p>
 				</form><script type="application/javascript" crossorigin="anonymous" src="'.PaytmHelperDonation::getInitiateURL(get_option('paytm_payment_environment')).'/merchantpgpui/checkoutjs/merchants/'.trim(get_option('paytm_merchant_id')).'.js"></script>';
 	
