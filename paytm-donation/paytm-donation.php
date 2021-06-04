@@ -316,7 +316,7 @@ function paytm_donation_form(){
 	$paytm_enable_address = get_option('paytm_enable_address');
 	$paytm_address_id= $paytm_enable_address==0?'hide-address':'';
 	$html = PaytmHelperDonation::getCallbackMsgPaytm(); 
-	$plugin_data = get_plugin_data( __FILE__ );
+	$plugin_data = array();//get_plugin_data( __FILE__ );
 	$html .= '<form name="frmTransaction" method="post">
 	<div class="paytm-pg-donar-info">
 					<p>
@@ -629,3 +629,4 @@ function curltest_donation($content){
 			return $wpdb->insert_id;
 		}
 	}
+
