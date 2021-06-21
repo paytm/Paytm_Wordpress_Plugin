@@ -11,7 +11,6 @@ class CSVExport
 		{
 
 			global $wpdb;
-			//echo "<pre>";print_r($_GET);die;
 			if(isset($_GET['filter_action'])){
 				if(!empty($_GET['payment_status'])){
 					$filter1 = "and payment_status = '".$_GET['payment_status']."'";
@@ -25,7 +24,6 @@ class CSVExport
 					$filter2 = "";
 				}
 				$donationEntries = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "paytm_donation where 1 ".$filter1.$filter2."  order by date desc", ARRAY_A);
-				//echo $wpdb->last_query;die;
 			}else{
 				$donationEntries = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "paytm_donation order by date desc", ARRAY_A);
 			}
@@ -140,7 +138,6 @@ function wp_paytm_donation_listings_page() {
 	</form>	
 	<?php
 			global $wpdb;
-			//echo "<pre>";print_r($_GET);
 			$records_per_page = 10;
 			$page = isset( $_GET['cpage'] ) ? abs( (int) $_GET['cpage'] ) : 1;
 			$str = '';
@@ -161,7 +158,6 @@ function wp_paytm_donation_listings_page() {
 				}
 				$donationEntries = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "paytm_donation where 1 ".$filter1.$filter2."  order by date desc limit ".$offset. " , ".$records_per_page);
 				$total = $wpdb->get_var("SELECT COUNT(id)  FROM " . $wpdb->prefix . "paytm_donation where 1 ".$filter1.$filter2."");
-				//echo $wpdb->last_query;die;
 			}else{
 				$donationEntries = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "paytm_donation order by date desc limit ".$offset. " , ".$records_per_page);
 				$total = $wpdb->get_var("SELECT COUNT(id)  FROM " . $wpdb->prefix . "paytm_donation");
