@@ -142,6 +142,8 @@ function paytm_deactivation() {
 }
 
 function paytm_settings_list(){
+
+	$webhookUrl = site_url()."?webhook=yes";
 	$settings = array(
 		array(
 			'display' => 'Merchant ID',
@@ -191,7 +193,14 @@ function paytm_settings_list(){
 			'name'          => 'paytm_enable_address',
 			'values'		=> array("1" => "yes","0" => "No"),
 			'hint'	=> 'Enable/Disable Address Fields'
-		)			
+		),
+		array(
+            'display' => 'Enable Webhook',
+            'type'	  => 'select',
+            'name'    => 'is_webhook',
+            'hint'    =>  "Enable Paytm Webhook <a href=“https://dashboard.paytm.com/next/webhook-url”>here</a> with the URL listed below.<br><span>".$webhookUrl."</span><br/><br/>Instructions and guide to <a href=‘https://developer.paytm.com/docs/payment-status/’>Paytm webhooks</a>",
+            'values'  => array("yes" => "Yes","no" => "No"),
+        )			
 	);
 	return $settings;
 }
@@ -375,6 +384,7 @@ function initiate_blinkCheckout()
 
 	if(!empty($txnAmount) && (int)$txnAmount > 0)
 	{
+
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . "paytm_donation";
@@ -454,7 +464,6 @@ function paytm_donation_meta_box_callback($post) {
 function paytm_donation_response(){
 	
 	if(! empty($_POST) && isset($_POST['ORDERID'])){
-
 		global $wpdb;
 
 		$paytm_merchant_key = trim(get_option('paytm_merchant_key'));
@@ -520,11 +529,14 @@ function paytm_donation_response(){
 			$msg = "Security error!";
 			$wpdb->query($wpdb->prepare("UPDATE ".$wpdb->prefix . "paytm_donation SET payment_status = 'Payment Error' WHERE  id = %d", sanitize_text_field($_POST['ORDERID'])));
 		}
-		
+		if (isset($_GET['webhook']) && $_GET['webhook'] =='yes') {
+			 echo "Webhook Received";
+			 exit;
+		}
 
 		//$redirect_url = get_site_url() . '/' . get_permalink(get_the_ID());
 		$redirect_url = get_permalink(get_the_ID());
-		//echo $redirect_url ."<br />";
+		//echo $redirect_url ."<br />";die;
 		PaytmHelperDonation::setCallbackMsgPaytm($msg);
 
 		$redirect_url = add_query_arg( array());
