@@ -300,7 +300,11 @@ function paytm_options_page() {
 
 function paytm_register_settings() {
 	$settings = paytm_settings_list();
-	foreach ($settings as $setting) {
+	if(is_array($setting['value'])){
+		foreach($setting['value'] as $value){
+			register_setting($setting['name'], $value);		
+		}
+	}else{
 		register_setting($setting['name'], $setting['value']);
 	}
 }
