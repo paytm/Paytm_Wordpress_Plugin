@@ -170,7 +170,7 @@ function paytm_settings_list(){
 			'display'			=>'Environment',
 			'type'			=> 'select',
 			'name'          => 'paytm_payment_environment',
-			'values'		=> array("0" => "Staging", "1" => "Production"),
+			'value'		=> array("0" => "Staging", "1" => "Production"),
 			'hint'	=> 'Select environment.'
 		),
 		array(
@@ -191,7 +191,7 @@ function paytm_settings_list(){
 			'display'			=>'Enable Address Fields',
 			'type'			=> 'select',
 			'name'          => 'paytm_enable_address',
-			'values'		=> array("1" => "yes","0" => "No"),
+			'value'		=> array("1" => "yes","0" => "No"),
 			'hint'	=> 'Enable/Disable Address Fields'
 		),
 		array(
@@ -199,7 +199,7 @@ function paytm_settings_list(){
             'type'	  => 'select',
             'name'    => 'is_webhook',
             'hint'    =>  "Enable Paytm Webhook <a href=“https://dashboard.paytm.com/next/webhook-url”>here</a> with the URL listed below.<br><span>".$webhookUrl."</span><br/><br/>Instructions and guide to <a href=‘https://developer.paytm.com/docs/payment-status/’>Paytm webhooks</a>",
-            'values'  => array("yes" => "Yes","no" => "No"),
+            'value'  => array("yes" => "Yes","no" => "No"),
         )			
 	);
 	return $settings;
