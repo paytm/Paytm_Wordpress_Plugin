@@ -56,7 +56,9 @@ function paytm_activation() {
 	global $wpdb, $wp_rewrite;
 	$settings = paytm_settings_list();
 	foreach ($settings as $setting) {
-		add_option($setting['name'], $setting['value']);
+		if(isset($setting['value'])){
+			add_option($setting['name'], $setting['value']);
+		}
 	}
 	add_option( 'paytm_donation_details_url', '', '', 'yes' );
 	$post_date = date( "Y-m-d H:i:s" );
@@ -72,7 +74,7 @@ function paytm_activation() {
 	);
 	
 	$newpages = false;
-	
+	$paytm_pages = $ebs_pages;
 	$paytm_page_id = $wpdb->get_var("SELECT id FROM `" . $wpdb->posts . "` WHERE `post_content` LIKE '%" . $paytm_pages['paytm-page']['tag'] . "%'	AND `post_type` != 'revision'");
 	if(empty($paytm_page_id)){
 		$paytm_page_id = wp_insert_post( array(
@@ -170,7 +172,7 @@ function paytm_settings_list(){
 			'display'			=>'Environment',
 			'type'			=> 'select',
 			'name'          => 'paytm_payment_environment',
-			'value'		=> array("0" => "Staging", "1" => "Production"),
+			'values'		=> array("0" => "Staging", "1" => "Production"),
 			'hint'	=> 'Select environment.'
 		),
 		array(
@@ -191,7 +193,7 @@ function paytm_settings_list(){
 			'display'			=>'Enable Address Fields',
 			'type'			=> 'select',
 			'name'          => 'paytm_enable_address',
-			'value'		=> array("1" => "yes","0" => "No"),
+			'values'		=> array("1" => "yes","0" => "No"),
 			'hint'	=> 'Enable/Disable Address Fields'
 		),
 		array(
@@ -199,7 +201,8 @@ function paytm_settings_list(){
             'type'	  => 'select',
             'name'    => 'is_webhook',
             'hint'    =>  "Enable Paytm Webhook <a href=“https://dashboard.paytm.com/next/webhook-url”>here</a> with the URL listed below.<br><span>".$webhookUrl."</span><br/><br/>Instructions and guide to <a href=‘https://developer.paytm.com/docs/payment-status/’>Paytm webhooks</a>",
-            'value'  => array("yes" => "Yes","no" => "No"),
+            'values'  => array("yes" => "Yes","no" => "No"),
+
         )			
 	);
 	return $settings;
@@ -300,12 +303,16 @@ function paytm_options_page() {
 
 function paytm_register_settings() {
 	$settings = paytm_settings_list();
-	if(is_array($setting['value'])){
-		foreach($setting['value'] as $value){
-			register_setting($setting['name'], $value);		
-		}
-	}else{
-		register_setting($setting['name'], $setting['value']);
+	foreach ($settings as $setting) {
+		// if(is_array($setting['value'])){
+		// 	foreach($setting['value'] as $value){
+		// 		register_setting($setting['name'], $value);		
+		// 	}
+		// }else{
+		if(isset($setting['value'])){	
+		 	register_setting($setting['name'], $setting['value']);
+		 }
+		//}
 	}
 }
 
@@ -372,7 +379,7 @@ function paytm_donation_form(){
 					</div>
 					<p>
 						<input type="hidden" name="action" value="paytm_donation_request">
-						<input type="submit" value="' . trim(get_option('paytm_content')) .'" id="paytm-blinkcheckout" data-wpversion="'.get_bloginfo( 'version' ).'" data-pversion="'.$plugin_data['Version'].'" data-action="'.admin_url( 'admin-ajax.php' ).'?action=initiate_blinkCheckout" data-id="'.get_the_ID().'" />
+						<input type="submit" value="' . trim(get_option('paytm_content')) .'" id="paytm-blinkcheckout" data-wpversion="'.get_bloginfo( 'version' ).'" data-pversion="'.PaytmConstantsDonation::PLUGIN_VERSION.'" data-action="'.admin_url( 'admin-ajax.php' ).'?action=initiate_blinkCheckout" data-id="'.get_the_ID().'" />
 					</p>
 				</form><script type="application/javascript" crossorigin="anonymous" src="'.PaytmHelperDonation::getInitiateURL(get_option('paytm_payment_environment')).'/merchantpgpui/checkoutjs/merchants/'.trim(get_option('paytm_merchant_id')).'.js"></script>';
 	

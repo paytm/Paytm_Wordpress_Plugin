@@ -126,7 +126,7 @@ function wp_paytm_donation_listings_page() {
 	<form id="posts-filter" method="get">
 		<div class="alignleft actions">
 			<input type="hidden" name="page" value="wp_paytm_donation">
-			<input type="text" name="query" value="<?=($_GET['query'])?$_GET['query']:""?>" placeholder="search">
+			<input type="text" name="query" value="<?=isset($_GET['query'])?$_GET['query']:""?>" placeholder="search">
 			<select name="payment_status" id="payment_status" class="postform">
 				<option value="0" selected="selected">All Payment Status</option>
 				<option class="level-0" value="Payment failed" <?=($_GET['payment_status']=="Payment failed")?"selected":""?>>Payment failed</option>
