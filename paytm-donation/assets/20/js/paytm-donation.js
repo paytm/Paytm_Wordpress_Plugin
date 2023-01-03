@@ -17,15 +17,23 @@ function paytmDonationJs() {
         paytmPgLoader();
         jQuery('#paytm-blinkcheckout').on('click', function() {
             jQuery('.paytm-pg-loader').show();
-            var donor_amount = jQuery('input[name=donor_amount]').val();
-            var donor_name = jQuery('input[name=donor_name]').val();
-            var donor_email = jQuery('input[name=donor_email]').val();
-            var donor_phone = jQuery('input[name=donor_phone]').val();
-            var donor_address = jQuery('input[name=donor_address]').val();
-            var donor_city = jQuery('input[name=donor_city]').val();
-            var donor_state = jQuery('input[name=donor_state]').val();
-            var donor_country = jQuery('input[name=donor_country]').val();
-            var donor_postal_code = jQuery('input[name=donor_postal_code]').val();
+            serializedata = $('form[name="frmTransaction"]').serializeArray();
+            
+            var donor_amount = $.grep(serializedata, function(element, index) {
+                return (element.name === 'Amount');
+             })[0].value;
+
+             var donor_name = $.grep(serializedata, function(element, index) {
+                return (element.name === 'Name');
+             })[0].value;
+             
+             var donor_email = $.grep(serializedata, function(element, index) {
+                return (element.name === 'Email');
+             })[0].value;
+             
+             var donor_phone = $.grep(serializedata, function(element, index) {
+                return (element.name === 'Phone');
+             })[0].value;     
             var errorMsg = '';
             jQuery('.paytmError').remove();
             if (jQuery.trim(donor_name) == '') {
@@ -42,7 +50,7 @@ function paytmDonationJs() {
                 jQuery.ajax({
                     url: url,
                     method: "POST",
-                    data: { "txnAmount": donor_amount, 'email': donor_email, "name": donor_name, 'phone': donor_phone, "address": donor_address, 'city': donor_city, "state": donor_state, 'country': donor_country, "postalcode": donor_postal_code, "id": id  },
+                    data: { "txnAmount": donor_amount, 'email': donor_email, "name": donor_name, 'phone': donor_phone, "id": id ,"serializedata":serializedata},
                     dataType: 'JSON',
                     beforeSend: function() {},
                     success: function(result) {

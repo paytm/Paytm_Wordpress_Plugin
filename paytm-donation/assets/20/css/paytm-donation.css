@@ -102,4 +102,16 @@
 #hide-address {
     display: none !important;
 }
+#wpfooter{
+    position: fixed !important;
+}
+.dropdown{
+    width: 71%;
+    display: block;
+    height: 25px;
+}
+.plusIcon{
+   font-size:16px; 
+   font-weight:bold;
+}
 

@@ -2,40 +2,41 @@
 
 class PaytmConstantsDonation{
 	CONST TRANSACTION_URL_PRODUCTION			       = "https://securegw.paytm.in/order/process";
-	CONST TRANSACTION_STATUS_URL_PRODUCTION		               = "https://securegw.paytm.in/order/status";
+	CONST TRANSACTION_STATUS_URL_PRODUCTION		       = "https://securegw.paytm.in/order/status";
 
 	CONST TRANSACTION_URL_STAGING				        = "https://securegw-stage.paytm.in/order/process";
-	CONST TRANSACTION_STATUS_URL_STAGING		                = "https://securegw-stage.paytm.in/order/status";
+	CONST TRANSACTION_STATUS_URL_STAGING		        = "https://securegw-stage.paytm.in/order/status";
 
 	CONST BLINKCHECKOUT_URL_STAGING				        = "https://securegw-stage.paytm.in";
 	CONST BLINKCHECKOUT_URL_PRODUCTION			        = "https://securegw.paytm.in";
 
 	CONST SAVE_PAYTM_RESPONSE 					= true;
-	CONST CHANNEL_ID						= "WEB";
+	CONST CHANNEL_ID							= "WEB";
 	CONST APPEND_TIMESTAMP						= true;
-	CONST X_REQUEST_ID						= "PLUGIN_WORDPRESS_";
+	CONST X_REQUEST_ID							= "PLUGIN_WORDPRESS_";
+	CONST PLUGIN_VERSION_FOLDER					= "20";
 
 	CONST MAX_RETRY_COUNT						= 3;
 	CONST CONNECT_TIMEOUT						= 10;
-	CONST TIMEOUT							= 10;
+	CONST TIMEOUT								= 10;
 
-	CONST LAST_UPDATED						= "20210802";
-	CONST PLUGIN_VERSION						= "3.0";
-	CONST PLUGIN_DOC_URL						= "https://developer.paytm.com/docs/eCommerce-plugin/wordpress/";
+	CONST LAST_UPDATED							= "20230102";
+	CONST PLUGIN_VERSION						= "2.0";
+	CONST PLUGIN_DOC_URL						= "https://business.paytm.com/docs/wordpress/";
 
 	CONST CUSTOM_CALLBACK_URL					= "";
 
 
-	CONST ID							= "paytm";
-	CONST METHOD_TITLE						= "Paytm Payments";
+	CONST ID									= "paytm";
+	CONST METHOD_TITLE							= "Paytm Payments";
 	CONST METHOD_DESCRIPTION					= "The best payment gateway provider in India for e-payment through credit card, debit card & netbanking.";
 
-	CONST TITLE							= "Paytm";
-	CONST DESCRIPTION						= "The best payment gateway provider in India for e-payment through credit card, debit card & netbanking.";
-        CONST PAYTM_PAYMENT_BUTTON_TEXT                                 =  "Pay With Paytm";
+	CONST TITLE									= "Paytm";
+	CONST DESCRIPTION							= "The best payment gateway provider in India for e-payment through credit card, debit card & netbanking.";
+    CONST PAYTM_PAYMENT_BUTTON_TEXT             =  "Pay With Paytm PG";
 	 
 	
-	CONST FRONT_MESSAGE						= "Thank you for your order, please click the button below to pay with paytm.";
+	CONST FRONT_MESSAGE							= "Thank you for your order, please click the button below to pay with paytm.";
 	CONST NOT_FOUND_TXN_URL					        = "Something went wrong. Kindly contact with us.";
 	CONST PAYTM_PAY_BUTTON					        = "Pay via Paytm";
 	CONST CANCEL_ORDER_BUTTON				        = "Cancel order & Restore cart";
