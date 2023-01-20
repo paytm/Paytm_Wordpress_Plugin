@@ -3,7 +3,7 @@
  * Plugin Name: Paytm Payment Donation
  * Plugin URI: https://business.paytm.com/docs/wordpress/
  * Description: This plugin allow you to accept donation payments using Paytm. This plugin will add a simple form that user will fill, when he clicks on submit he will redirected to Paytm website to complete his transaction and on completion his payment, paytm will send that user back to your website along with transactions details. This plugin uses server-to-server verification to add additional security layer for validating transactions. Admin can also see all transaction details with payment status by going to "Paytm Payment Details" from menu in admin.
- * Version: 2.0
+ * Version: 2.1
  * Author: Paytm
  * Author URI: https://business.paytm.com/payment-gateway
  * Text Domain: Paytm Payments
@@ -384,8 +384,8 @@ $paytmConfig = '<div class="wrap">
 						}
 
 						echo  '<tr>
-									<td>&nbsp;</td>
-									<td colspan="2">
+									<td></td>
+									<td>
 										<input id="savePaytmConfiguration" type="submit" class="button-primary" value="Save Changes" />
 										<input id="updatePaytmConfiguration" type="hidden" name="action" value="update" />';
 										echo '<input type="hidden" name="page_options" value="';
@@ -516,9 +516,41 @@ function paytm_donation_form(){
 	// echo $dynamic_html;
 
 	$current_url = esc_url("//".$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI']);	
-	$html = PaytmHelperDonation::getCallbackMsgPaytm(); 
+	//$html = PaytmHelperDonation::getCallbackMsgPaytm(); 
+	/* --------popup at callback code start------*/
+	if(isset($_GET['qdata']) && $_GET['qdata']!=''){
+		$qdata =  base64_decode($_GET['qdata']);
+		$qdata = json_decode($qdata, true); 
+		 $msg = $qdata['msg'];
+		 $orderId = $qdata['orderId'];
+		 $txnId =  $qdata['txnId'];
+		 $txnAmount = $qdata['txnAmount'];
+ ?>
+			<div id="myModal" class="modal">
+			    <!-- Modal content -->
+			    <div class="modal-content">
+				    <a href="<?php echo get_permalink(get_the_ID()); ?>" id="closeRedirect" class="close">&times;</a> 
+						<div>
+							<?php echo $msg; ?>
+						<table width="100%" class="table-view-list" align="center" cellpadding="10" border="0">
+							<tr><td colspan="3">&nbsp;</td></tr>
+							<tr><th align="right" width="50%">Order Id</th><td>:</td><td><?php echo $orderId; ?></td></tr>
+							<tr><th align="right">Transaction Id</th><td>:</td><td><?php echo $txnId; ?></td></tr>
+							<tr><th align="right">Amount</th><td>:</td><td><?php echo $txnAmount; ?></td></tr>
+							<tr><td colspan="3"></td></tr>
+						</table> 
+				   <a href="<?php echo get_permalink(get_the_ID()); ?>" id="onclickbutton" class="okbutton button-primary">OK</a>
+			    </div>
+			</div>	
+			<script type="text/javascript">
+				document.getElementById('myModal').style.display = "block"; 
+			</script>
+			<?php 
+
+	}
+	/* --------popup at callback code end------*/
 	$plugin_data = array();//get_plugin_data( __FILE__ );
-	$html .= '<form name="frmTransaction" method="post">
+	$html = '<form name="frmTransaction" method="post">
 	<div class="paytm-pg-donar-info">'
 					.$dynamic_html.
 					'</div>
@@ -528,7 +560,6 @@ function paytm_donation_form(){
 						<input type="submit" value="' . trim(get_option('paytm_content')) .'" id="paytm-blinkcheckout" data-wpversion="'.get_bloginfo( 'version' ).'" data-pversion="'.PaytmConstantsDonation::PLUGIN_VERSION.'" data-action="'.admin_url( 'admin-ajax.php' ).'?action=initiate_blinkCheckout" data-id="'.get_the_ID().'" />
 					</p>
 				</form><script type="application/javascript" crossorigin="anonymous" src="'.PaytmHelperDonation::getInitiateURL(get_option('paytm_payment_environment')).'/merchantpgpui/checkoutjs/merchants/'.trim(get_option('paytm_merchant_id')).'.js"></script>';
-	
 	return $html;
 }
 add_action('wp_ajax_initiate_blinkCheckout','initiate_blinkCheckout');
@@ -695,11 +726,21 @@ function paytm_donation_response(){
 			 echo wp_kses("Webhook Received", $allowedposttags);
 			 exit;
 		}
+		// ------ custom code for callback popup ---- 
+		$txnId = sanitize_text_field($_POST['TXNID']);
+		$txnAmount = sanitize_text_field($_POST['TXNAMOUNT']); 
 		$redirect_url = get_permalink(get_the_ID());
 		PaytmHelperDonation::setCallbackMsgPaytm($msg);
-		$redirect_url = add_query_arg( array());
+		//$qdata = array('msg'=>base64_encode($msg),'orderId'=>base64_encode($order_id),'txnId' =>base64_encode($txnId),'txnAmount'=>base64_encode($txnAmount));
+		//$qdata = array('msg'=>base64_encode($msg),'orderId'=>base64_encode($order_id),'txnId' =>base64_encode($txnId),'txnAmount'=>base64_encode($txnAmount));
+		$qdata = array('msg'=>$msg,'orderId'=>$order_id,'txnId' =>$txnId,'txnAmount'=>$txnAmount);
+ 		$qdata = json_encode($qdata, true);
+ 		$qdata = base64_encode($qdata);
+		$redirect_url = add_query_arg('qdata', $qdata);
 		wp_redirect( $redirect_url,301 );
 		exit;
+
+		// -------code end -----------
 	}
 
 

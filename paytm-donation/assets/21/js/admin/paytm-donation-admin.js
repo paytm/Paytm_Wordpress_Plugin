@@ -82,7 +82,7 @@ jQuery(document).ready(function(){
 /*  --------- website name code end here -------------*/
 
 function paytmDonationJs() {
-    jQuery(document).ready(function() {
+    jQuery(document).ready(function($) {
         paytmPgLoader();
         jQuery('#paytm-blinkcheckout').on('click', function() {
             jQuery('.paytm-pg-loader').show();
