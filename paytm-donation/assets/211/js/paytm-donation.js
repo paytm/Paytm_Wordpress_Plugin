@@ -10,39 +10,87 @@ function isValidEmail(inputText) {
     } else {
         return false;
     }
-}
+} 
+
+function isValidPhone(inputText) {
+    var pattern = /^\d{10}$/; // Validates a 10-digit phone number
+
+    // Perform the validation
+    if (pattern.test(inputText)) {
+      // Phone number is valid
+      console.log("Valid phone number");
+      return true;
+    } else {
+      // Phone number is invalid
+      console.log("Invalid phone number");
+      return false;
+    }
+} 
 
 function paytmDonationJs() {
     jQuery(document).ready(function($) {
         paytmPgLoader();
+        var errorMsg = '';
+        jQuery('.paytmError').remove();
         jQuery('#paytm-blinkcheckout').on('click', function() {
             jQuery('.paytm-pg-loader').show();
+            var allInputs = $('form[name="frmTransaction"]').find(':input');
             serializedata = $('form[name="frmTransaction"]').serializeArray();
-            
-            var donor_amount = $.grep(serializedata, function(element, index) {
-                return (element.name === 'Amount');
-             })[0].value;
+            allInputs.each(function() {
+                errorMsg = '';
+                var name = $(this).attr('name');
+                var required = ($(this).attr('required') !== undefined) ? true : false;
+                if (required && jQuery.trim($(this).val()) === '') {
+                    errorMsg = 'Field "' + name + '" is required field!';
+                    return false;
+                }
 
-             var donor_name = $.grep(serializedata, function(element, index) {
-                return (element.name === 'Name');
-             })[0].value;
-             
-             var donor_email = $.grep(serializedata, function(element, index) {
-                return (element.name === 'Email');
-             })[0].value;
-             
-             var donor_phone = $.grep(serializedata, function(element, index) {
-                return (element.name === 'Phone');
-             })[0].value;     
-            var errorMsg = '';
-            jQuery('.paytmError').remove();
-            if (jQuery.trim(donor_name) == '') {
-                errorMsg = "Please Enter Name!";
-            } else if (isValidEmail(donor_email) === false) {
-                errorMsg = "Please Enter Valid Email Address!";
-            } else if (jQuery.trim(donor_amount) == '' || Number(donor_amount) < 1) {
-                errorMsg = "Please Enter Amount!";
-            } else {
+                if(name === "Email" && jQuery.trim($(this).val()) != '' && required){
+                    if (isValidEmail(jQuery.trim($(this).val())) === false) {
+                    errorMsg = "Please Enter Valid Email Address!";
+                    return false;
+                    } 
+                }
+
+                if(name === "Phone" && jQuery.trim($(this).val()) != '' && required){
+                    if (isValidPhone(jQuery.trim($(this).val())) === false) {
+                    errorMsg = "Please Enter Valid Phone no!";
+                    return false;
+                    } 
+                }
+                              
+            });
+
+            /*if (errorMsg == "") {
+            var donor_email = $.grep(serializedata, function(element, index) {
+                    return (element.name === 'Email');
+                })[0].value;
+
+               if (isValidEmail(donor_email) === false) {
+                    errorMsg = "Please Enter Valid Email Address!";
+                }   
+            }*/
+            if (errorMsg != "") {
+                jQuery('.paytmError').remove();
+                jQuery('#paytm-blinkcheckout').after('<span class="paytmError" style="display:block;color:red;">' + errorMsg + '</span>');
+                jQuery('.paytm-pg-loader').hide();
+                return false; 
+            }else{
+                jQuery('.paytmError').remove();
+                var donor_email = $.grep(serializedata, function(element, index) {
+                    return (element.name === 'Email');
+                })[0].value;
+                var donor_amount = $.grep(serializedata, function(element, index) {
+                    return (element.name === 'Amount');
+                })[0].value;
+    
+                var donor_name = $.grep(serializedata, function(element, index) {
+                    return (element.name === 'Name');
+                })[0].value;
+                 
+                var donor_phone = $.grep(serializedata, function(element, index) {
+                    return (element.name === 'Phone');
+                })[0].value;
                 var url = jQuery(this).data('action');
                 var id = jQuery(this).data('id');
                 var pversion = jQuery(this).data('pversion');
@@ -84,6 +132,9 @@ function paytmDonationJs() {
                                 jQuery('.paytm-pg-loader').hide();
                             });
 
+                        } else if(result.error == true){
+                            alert(result.message);
+                            jQuery('.paytm-pg-loader').hide();
                         } else {
                             alert('Something went wrong. Please try again!');
                             jQuery('.paytm-pg-loader').hide();
@@ -92,14 +143,11 @@ function paytmDonationJs() {
                     }
                 });
             }
-            if (errorMsg != "") {
-                jQuery('#paytm-blinkcheckout').after('<span class="paytmError" style="display:block;color:red;">' + errorMsg + '</span>');
-                jQuery('.paytm-pg-loader').hide();
-            }
             return false;
         });
     });
 }
+
 if (typeof jQuery == 'undefined') {
     var headTag = document.getElementsByTagName("head")[0];
     var jqTag = document.createElement('script');

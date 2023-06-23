@@ -74,6 +74,8 @@ function wp_paytm_donation_user_field_page()
          
             $fieldType = ['text','dropdown','radio'];
 
+            $requiredType = ['yes','no'];
+
             //script is dynamically added here
             echo wp_kses('<script type="text/javascript"> paytmDonationJs();</script>', $allowedposttags);
             PaytmHelperDonation::dbUpgrade_modal();
@@ -86,12 +88,30 @@ function wp_paytm_donation_user_field_page()
     <button class="add_form_field button-secondary">Add New Field &nbsp; 
       <span class="plusIcon">+ </span>
     </button><br><br>
+    <div class="userFields">
+        <label class="input-head" for="">Field Name</label>
+        <label class="input-head"  for="">Required Option</label>
+        <label class="input-head" for="">Field Type</label>
+        <label class="input-head" for="">Field Value</label>
+    </div>
+    
     <?php $i=0; foreach($decodeCustomFieldRecordArray->mytext as $key => $value): ?>
     <div class="userFields">
         <?php $readonly = ''; if ($value=='Name' || $value=='Email' || $value=='Phone' || $value=='Amount'){
             $readonly = 'readonly';
-         } ?>        
+         } ?>
         <input type="text" name="mytext[]" Placeholder="Field Name" value="<?php echo $value;?>" <?php echo $readonly;?>>
+
+        <select name="is_required[]" <?php if($i<=3){ echo 'style="pointer-events: none;"';}?> >
+            <?php foreach($requiredType as $fieldTypeValue):?>
+                <?php if($i<=3){?>
+                    <option value="yes">yes</option>
+                    <?php }else{ ?>
+                <option value="<?php echo $fieldTypeValue;?>" <?php echo ($decodeCustomFieldRecordArray->is_required[$key] == $fieldTypeValue) ? 'selected' : ''; ?>><?php echo $fieldTypeValue;?></option>
+                <?php };?>
+            <?php endforeach;?>
+        </select>  
+
         <select name="mytype[]" <?php if($i<=3){ echo 'style="pointer-events: none;"';}?> >
             <option value="">Select</option>
             <?php foreach($fieldType as $fieldTypeValue):?>
@@ -127,7 +147,7 @@ jQuery(document).ready(function($) {
         e.preventDefault();
        /* if (x < max_fields) {
             x++;*/
-            $(wrapper).append('<div class="userFields"><input type="text" name="mytext[]" Placeholder="Field Name" />&#8198;&#8198;<select name="mytype[]" ><option value="">Select</option><option value="text">text</option><option value="dropdown">dropdown</option><option value="radio">radio</option></select>&#8198;&#8198;<input type="text" name="myvalue[]" Placeholder="Comma Seperated Value">&#8198;&#8198;<a href="#" class="paytmDelete">Delete</a></div>'); //add input box
+            $(wrapper).append('<div class="userFields"><input type="text" name="mytext[]" Placeholder="Field Name" />&#8198;&#8198;<select name=is_required[]><option value=“yes”>yes</option><option value=“no”>No</option></select>&#8198;&#8198;<select name="mytype[]" ><option value="">Select</option><option value="text">text</option><option value="dropdown">dropdown</option><option value="radio">radio</option></select>&#8198;&#8198;<input type="text" name="myvalue[]" Placeholder="Comma Seperated Value">&#8198;&#8198;<a href="#" class="paytmDelete">Delete</a></div>'); //add input box
         /*} else {
             alert('You Reached the limits')
         }*/
@@ -142,29 +162,42 @@ jQuery(document).ready(function($) {
 
 jQuery('#paytm-paytmCustomFieldSave').on('click', function() {
     var data = jQuery('#customFieldForm').serializeArray();
+    console.log(data);
     dataObj = {};
     fieldName = false;
+    fieldRequired = false;
     fieldType = false;
     fieldValue = false;    
     console.log(data);
     // alert(data[14]['value']);
     jQuery(data).each(function(i, field){
       dataObj[field.name] = field.value;
-      getReminder = i % 3;
+      console.log(dataObj);
+      getReminder = i % 4;
       position = i;
 
       if(getReminder == 0 && field.value==''){
         fieldName = true;
       }
 
-      if(getReminder == 1 && (field.value=='dropdown' || field.value=='radio')){
+      if(getReminder == 1 && (field.value=='dropdown')){
         position++;
         if(data[position]['value']==''){
             fieldValue = true;
         }
       }
-
       if(getReminder == 1 && (field.value=='')){
+        fieldRequired = true;
+      }
+
+      if(getReminder == 2 && (field.value=='dropdown' || field.value=='radio')){
+        position++;
+        if(data[position]['value']==''){
+            fieldValue = true;
+        }
+      }
+console.log('getReminder--'+getReminder);
+      if(getReminder == 2 && (field.value=='')){
         fieldType = true;
       }
   
@@ -183,7 +216,11 @@ jQuery('#paytm-paytmCustomFieldSave').on('click', function() {
     if(fieldType==true){
         alert('Field Type Cannot be empty');
         return false;
-    }         
+    }
+    if(fieldRequired==true){
+        alert('Field Required Cannot be empty');
+        return false;
+    }          
 
     var ajax_url = "<?php echo admin_url('admin-ajax.php'); ?>";
     var url = jQuery(this).data('action');

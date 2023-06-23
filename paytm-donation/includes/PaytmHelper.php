@@ -229,6 +229,26 @@ function paytmHelperInit()
                 global $wpdb; 
                 return $wpdb->query("SELECT * FROM ". ($site_wide ? $wpdb->base_prefix : $wpdb->prefix). "options WHERE option_name ='$name' LIMIT 1");
             }
+
+            public static function checkValidInput($serializedata){
+                $email_pattern = "/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/";
+                $error_message = "";
+                foreach($serializedata as $form_data){
+                    $frm_val = $form_data['value'];
+                    $frm_name = $form_data['name'];
+                    if($frm_val != strip_tags($frm_val)){
+                       $error_message = "Pleave enter a valid ".$frm_name;
+                    }
+
+                    if($frm_name == 'Email' && !preg_match($email_pattern, $frm_val)){
+                        $error_message = "Please enter a valid email address";
+                    }
+
+
+                }
+                return $error_message;
+                
+            }
         }
     endif;
 }

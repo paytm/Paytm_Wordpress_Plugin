@@ -8,6 +8,14 @@ input[type=text]{
   border-radius: 4px;
   box-sizing: border-box;
 }
+.input-head{
+  min-width: 200px;
+  padding: 2px 2px 2px 2px;
+  margin: 8px 0;
+  font-size: 14px;
+  font-weight: bold;
+  display: inline-block;
+}
 select {
   min-width: 200px;
   padding: 2px 2px 2px 10px !important;

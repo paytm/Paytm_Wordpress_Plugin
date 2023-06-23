@@ -21,35 +21,33 @@ if(!isset($_GET["wc-api"])){
 
 add_shortcode( 'paytmcheckout', 'paytm_donation_handler' );
 
-// if(isset($_GET['donation_msg']) && $_GET['donation_msg'] != ""){
-// 	//add_action('the_content', 'paytmDonationShowMessage');
-// }
 add_action('plugins_loaded', 'paytmHelperInit');
 add_action('plugins_loaded', 'paytmChecksumInit');
-// function paytmDonationShowMessage($content){
-// 	return '<div class="box">'.htmlentities(urldecode($_GET['donation_msg'])).'</div>'.$content;
-// }
 /* Enqueue Javascript File */
-function paytmDonation_enqueue_script() {   
-    wp_enqueue_script( 'paytmDonation_script', plugin_dir_url( __FILE__ ) . 'assets/'.PaytmConstantsDonation::PLUGIN_VERSION_FOLDER.'/js/paytm-donation.js','','', true);
-}
-function paytmDonationAdmin_enqueue_script() {   
-    wp_enqueue_script( 'paytmDonationAdmin_script', plugin_dir_url( __FILE__ ) . 'assets/'.PaytmConstantsDonation::PLUGIN_VERSION_FOLDER.'/js/admin/paytm-donation-admin.js','','', false);
-}
-add_action('wp_enqueue_scripts', 'paytmDonation_enqueue_script');
-add_action('admin_enqueue_scripts', 'paytmDonationAdmin_enqueue_script');
 
-/* Enqueue Stylesheet */
-function paytmDonation_enqueue_style() {
-    wp_enqueue_style('paytmDonation', plugin_dir_url( __FILE__ ) . 'assets/'.PaytmConstantsDonation::PLUGIN_VERSION_FOLDER.'/css/paytm-donation.css', array(), '', '');
+function enqueue_admin_plugin_assets() {
+	if ( isset($_GET['page']) ) {
+	    if(  $_GET['page'] == 'paytm_options_page' || $_GET['page'] == 'wp_paytm_donation' || $_GET['page'] == 'wp_paytm_donation_user_field_page' ) {
+        wp_enqueue_style('paytmUserField', plugin_dir_url( __FILE__ ) . 'assets/'.PaytmConstantsDonation::PLUGIN_VERSION_FOLDER.'/css/admin/paytm-donation-admin.css', array(), '', '');
+        wp_enqueue_script( 'paytmDonationAdmin_script', plugin_dir_url( __FILE__ ) . 'assets/'.PaytmConstantsDonation::PLUGIN_VERSION_FOLDER.'/js/admin/paytm-donation-admin.js','','', false);
+    }
 }
-add_action('wp_head', 'paytmDonation_enqueue_style');
+}
 
-function paytmUserField_enqueue_style() {
-    wp_enqueue_style('paytmUserField', plugin_dir_url( __FILE__ ) . 'assets/'.PaytmConstantsDonation::PLUGIN_VERSION_FOLDER.'/css/admin/paytm-donation-admin.css', array(), '', '');
+function enqueue_plugin_assets() {
+    // Check if the shortcode is present on the current page
+    if (has_shortcode(get_the_content(), 'paytmcheckout')) {
+        // Enqueue your CSS file
+        wp_enqueue_style('paytmDonation', plugin_dir_url( __FILE__ ) . 'assets/'.PaytmConstantsDonation::PLUGIN_VERSION_FOLDER.'/css/paytm-donation.css', array(), '', '');
+
+        // Enqueue your JS file
+        wp_enqueue_script( 'paytmDonation_script', plugin_dir_url( __FILE__ ) . 'assets/'.PaytmConstantsDonation::PLUGIN_VERSION_FOLDER.'/js/paytm-donation.js','','', true);
+    }
 }
-add_action('admin_enqueue_scripts','paytmUserField_enqueue_style');
- 
+
+add_action('wp_enqueue_scripts', 'enqueue_plugin_assets');
+
+add_action('admin_enqueue_scripts', 'enqueue_admin_plugin_assets'); 
 
  function getCallbackUrl(){
 	if(!empty(PaytmConstantsDonation::CUSTOM_CALLBACK_URL)){
@@ -62,6 +60,7 @@ add_action('admin_enqueue_scripts','paytmUserField_enqueue_style');
 function paytm_activation() {
 	global $wpdb, $wp_rewrite;
 	$settings = paytm_settings_list();
+	print_R($settings);die;
 	foreach ($settings as $setting) {
 		if(isset($setting['value'])){
 			add_option($setting['name'], $setting['value']);
@@ -73,6 +72,10 @@ function paytm_activation() {
 	$myObj['mytext'][] = "Email";
 	$myObj['mytext'][] = "Phone";
 	$myObj['mytext'][] = "Amount";
+	$myObj['is_required'][] = "yes";
+	$myObj['is_required'][] = "yes";
+	$myObj['is_required'][] = "yes";
+	$myObj['is_required'][] = "yes";
 	$myObj['mytype'][] = "text";
 	$myObj['mytype'][] = "text";
 	$myObj['mytype'][] = "text";
@@ -87,6 +90,11 @@ function paytm_activation() {
 		$myObj['mytext'][] = "state";
 		$myObj['mytext'][] = "zip";
 		$myObj['mytext'][] = "address";	
+		$myObj['is_required'][] = "yes";
+		$myObj['is_required'][] = "yes";
+		$myObj['is_required'][] = "yes";
+		$myObj['is_required'][] = "yes";
+		$myObj['is_required'][] = "yes";
 		$myObj['mytype'][] = "text";
 		$myObj['mytype'][] = "text";
 		$myObj['mytype'][] = "text";
@@ -480,12 +488,17 @@ function paytm_donation_form(){
     $decodeCustomFieldRecord = json_decode(json_encode($customFieldRecord[0]));
 	$decodeCustomFieldRecordArray = (json_decode($decodeCustomFieldRecord->option_value));
 	$dynamic_html = '';
+	//print_r($decodeCustomFieldRecordArray);die;
 	foreach($decodeCustomFieldRecordArray->mytext as $key => $value):
+		$required = 'required';
+		$not_required = '';
+		$required_peram = ($decodeCustomFieldRecordArray->is_required[$key] == "yes")? $required :$not_required;
+
 		if ($decodeCustomFieldRecordArray->mytype[$key]=='text'){
 			$dynamic_html .= 
 				'<p>
 					<label for="'.$value.'">'.$value.':</label>
-					<input type="text" name="'.str_replace(' ', '_', $value).'" maxlength="255" value="'.$decodeCustomFieldRecordArray->myvalue[$key].'"/>
+					<input type="text" name="'.str_replace(' ', '_', $value).'" maxlength="255" value="'.$decodeCustomFieldRecordArray->myvalue[$key].'" '.$required_peram.'/>
 				</p>';
 		}
 		if ($decodeCustomFieldRecordArray->mytype[$key]=='dropdown'){
@@ -493,7 +506,7 @@ function paytm_donation_form(){
 			$dynamic_html .= 
 				'<p>
 					<label for="'.$value.'">'.$value.':</label>
-					<select name="'.str_replace(' ', '_', $value).'" class="dropdown">
+					<select type="dropdown"  name="'.str_replace(' ', '_', $value).'" class="dropdown" '.$required_peram.'>
 						<option value="">Please select</option>';
 						foreach($dynamic_dropdown as $dynamic_value):
 							$dynamic_html .=  '<option value="'.$dynamic_value.'" >'.$dynamic_value.'</option>';
@@ -507,8 +520,12 @@ function paytm_donation_form(){
 			$dynamic_html .= 
 				'<p>
 					<label for="'.$value.'">'.$value.':</label>';
+					$i=0;
 					foreach($dynamic_radio as $dynamic_radio_value):
-						$dynamic_html .=  '<input type="radio" name="'.str_replace(' ', '_', $value).'" value="'.$dynamic_radio_value.'">'.$dynamic_radio_value.'';
+						$checked= ($required_peram =='required' && $i== 0)?'checked':'';
+					
+						$dynamic_html .=  '<input type="radio" name="'.str_replace(' ', '_', $value).'" value="'.$dynamic_radio_value.'" '.$checked.' '.$required_peram.'>'.$dynamic_radio_value.'';
+					$i++;
 					endforeach;
 					$dynamic_html .='</p>';
 		}				
@@ -569,6 +586,20 @@ function initiate_blinkCheckout()
 	extract($_REQUEST);
 	$paytmParams = array();
 	$txntoken = '';
+
+	/*added code for validate  data*/
+	if(!empty($serializedata)){
+		$error_message = PaytmHelperDonation::checkValidInput($serializedata);
+		if($error_message != ""){
+			$error = array(
+						"error"=>true,
+    					"message" => $error_message
+					);
+			echo json_encode($error);
+			wp_die();
+		}
+	}
+	/*End code for validate  data*/
 
 	if(!empty($txnAmount) && (int)$txnAmount > 0)
 	{
@@ -634,7 +665,7 @@ function initiate_blinkCheckout()
 	}else{
 		echo json_encode(array('success'=> false,'txnToken' => '','data'=>$res));
 	}
-	die();
+	wp_die();
 }
 
 function paytm_donation_meta_box() {
@@ -751,6 +782,10 @@ function paytm_donation_response(){
 		$myObj['mytext'][] = "Email";
 		$myObj['mytext'][] = "Phone";
 		$myObj['mytext'][] = "Amount";
+		$myObj['is_required'][] = "yes";
+		$myObj['is_required'][] = "yes";
+		$myObj['is_required'][] = "yes";
+		$myObj['is_required'][] = "yes";
 		$myObj['mytype'][] = "text";
 		$myObj['mytype'][] = "text";
 		$myObj['mytype'][] = "text";
@@ -765,6 +800,11 @@ function paytm_donation_response(){
 			$myObj['mytext'][] = "state";
 			$myObj['mytext'][] = "zip";
 			$myObj['mytext'][] = "address";	
+			$myObj['is_required'][] = "yes";
+			$myObj['is_required'][] = "yes";
+			$myObj['is_required'][] = "yes";
+			$myObj['is_required'][] = "yes";
+			$myObj['is_required'][] = "yes";
 			$myObj['mytype'][] = "text";
 			$myObj['mytype'][] = "text";
 			$myObj['mytype'][] = "text";
@@ -780,6 +820,20 @@ function paytm_donation_response(){
 	      add_option('paytm_user_field', $myJSON);
 	     $post_date = date( "Y-m-d H:i:s" );
 	 }
+	 /* Added code for update options */
+	$customFieldRecord = $wpdb->get_results("SELECT option_value FROM " . $wpdb->prefix . "options where option_name = 'paytm_user_field'");
+	$decodeCustomFieldRecord = json_decode(json_encode($customFieldRecord[0]));
+	$decodeCustomFieldRecordArray = (json_decode($decodeCustomFieldRecord->option_value));
+	if(!isset($decodeCustomFieldRecordArray->is_required)){
+		foreach($decodeCustomFieldRecordArray->mytext as $key => $value){
+			$reqObj[] = ($key>3) ? "no" : "yes";
+		}
+		$decodeCustomFieldRecordArray->is_required = $reqObj;
+		$updatedJSON = json_encode($decodeCustomFieldRecordArray);				
+	    update_option('paytm_user_field', $updatedJSON);
+		$post_date = date( "Y-m-d H:i:s" );
+
+	}
 	 $oldTable = $wpdb->prefix . "paytm_donation";
 	 $backupTable = $wpdb->prefix . "paytm_donation_backup";
 	 $oldLastId = 1;
@@ -788,7 +842,7 @@ function paytm_donation_response(){
 	 if($wpdb->get_var("SHOW TABLES LIKE '$oldTable'") == $oldTable) {
 		 $oldLastOrderId = $wpdb->get_results("SELECT id FROM " . $oldTable." Order By id desc limit 1");
 		 $oldLastId =  count($oldLastOrderId) > 0 ? $oldLastOrderId[0]->id +1 : 1;
-   }
+  	 }
 
 	 $table_name_paytm_custom = $wpdb->prefix . 'paytm_donation_user_data';
 	 $sql_paytm_custom_data = "CREATE TABLE IF NOT EXISTS $table_name_paytm_custom (
