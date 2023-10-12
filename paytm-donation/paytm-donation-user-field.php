@@ -74,7 +74,7 @@ function wp_paytm_donation_user_field_page()
          
             $fieldType = ['text','dropdown','radio'];
 
-            $requiredType = ['yes','no'];
+            $requiredType = ["yes","no"];
 
             //script is dynamically added here
             echo wp_kses('<script type="text/javascript"> paytmDonationJs();</script>', $allowedposttags);
@@ -127,7 +127,10 @@ function wp_paytm_donation_user_field_page()
 </div>
  
     <?php $post_paytmCustomField = get_queried_object_id(); 
-    echo '<input type="button" value="Save Changes" class="button-primary" id="paytm-paytmCustomFieldSave" data-action="'.admin_url('admin-ajax.php').'?action=initiate_paytmCustomFieldSave" data-id="'.$post_paytmCustomField.'" />';
+
+    //$nonce_field = wp_nonce_field(plugin_basename(__FILE__),'hide_form_field_for_admin_nonce');
+
+    echo '<input type="button" value="Save Changes" class="button-primary" id="paytm-paytmCustomFieldSave" data-action="'.admin_url('admin-ajax.php').'?action=initiate_paytmCustomFieldSave&nonce='.wp_create_nonce( 'hide_form_field_for_admin_nonce' ).'" data-id="'.$post_paytmCustomField.'" />';
     ?>
 </form>
 <div class="Instructions">
@@ -147,7 +150,7 @@ jQuery(document).ready(function($) {
         e.preventDefault();
        /* if (x < max_fields) {
             x++;*/
-            $(wrapper).append('<div class="userFields"><input type="text" name="mytext[]" Placeholder="Field Name" />&#8198;&#8198;<select name=is_required[]><option value=“yes”>yes</option><option value=“no”>No</option></select>&#8198;&#8198;<select name="mytype[]" ><option value="">Select</option><option value="text">text</option><option value="dropdown">dropdown</option><option value="radio">radio</option></select>&#8198;&#8198;<input type="text" name="myvalue[]" Placeholder="Comma Seperated Value">&#8198;&#8198;<a href="#" class="paytmDelete">Delete</a></div>'); //add input box
+            $(wrapper).append('<div class="userFields"><input type="text" name="mytext[]" Placeholder="Field Name" />&#8198;&#8198;<select name="is_required[]"><option value=yes>yes</option><option value=no>No</option></select>&#8198;&#8198;<select name="mytype[]" ><option value="">Select</option><option value="text">text</option><option value="dropdown">dropdown</option><option value="radio">radio</option></select>&#8198;&#8198;<input type="text" name="myvalue[]" Placeholder="Comma Seperated Value">&#8198;&#8198;<a href="#" class="paytmDelete">Delete</a></div>'); //add input box
         /*} else {
             alert('You Reached the limits')
         }*/
@@ -162,14 +165,11 @@ jQuery(document).ready(function($) {
 
 jQuery('#paytm-paytmCustomFieldSave').on('click', function() {
     var data = jQuery('#customFieldForm').serializeArray();
-    console.log(data);
     dataObj = {};
     fieldName = false;
     fieldRequired = false;
     fieldType = false;
     fieldValue = false;    
-    console.log(data);
-    // alert(data[14]['value']);
     jQuery(data).each(function(i, field){
       dataObj[field.name] = field.value;
       console.log(dataObj);
@@ -196,7 +196,6 @@ jQuery('#paytm-paytmCustomFieldSave').on('click', function() {
             fieldValue = true;
         }
       }
-console.log('getReminder--'+getReminder);
       if(getReminder == 2 && (field.value=='')){
         fieldType = true;
       }
@@ -226,13 +225,21 @@ console.log('getReminder--'+getReminder);
     var url = jQuery(this).data('action');
     var id = jQuery(this).data('id');
     jQuery.ajax({
-         data: data,
+         data:data,
          method: "POST",
          url: url,
          dataType: 'JSON',
          success: function(result) {
-            alert("Record Saved Successfully!");
-              location.reload();
+            if (result.success == true) {
+                alert("Record Saved Successfully!");
+                location.reload();
+            }else if(result.error == true){
+                alert(result.message);
+                location.reload();
+            } else {
+                alert('Something went wrong. Please try again!');
+                location.reload();
+            }
         }
     });
 

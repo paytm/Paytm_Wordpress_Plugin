@@ -1,10 +1,10 @@
 === Paytm - Donation Plugin === 
 Contributors: integrationdevpaytm
 Tags: paytm, paytm plugin, paytm donation, payment, paytm payment, paytm wordpress plugin, wordpress donation, paytm official
-Requires PHP: 5.6
+Requires PHP: 7.4
 Requires at least: 4.9
-Tested up to: 6.1.2
-Stable tag: 2.1.1
+Tested up to: 6.2.2
+Stable tag: 2.2.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,10 +23,35 @@ This plugin allow you to accept donation payments using Paytm. This plugin will 
 == Compatibilities and Dependencies ==
 
 * Wordpress v3.9.2 or higher
-* PHP v5.6.0 or higher
+* PHP v7.4.0 or higher
 * Php-curl
 
 == Changelog ==
+
+= 2.2.6 =
+* Added Features and Security Fixes
+
+= 2.2.5 =
+* Security Fixes
+
+= 2.2.5 =
+* Security Fixes
+
+= 2.2.4 =
+* Security Fixes
+
+= 2.2.3 =
+* Security Fixes
+
+= 2.2.2 =
+* Security isses fixes related to DB
+
+= 2.2.1 =
+* Security Fixes
+
+= 2.2.0 =
+* Update in manage donation form setting
+* Added required or not required form field settings
 
 = 2.1.1 =
 * Update in manage donation form setting

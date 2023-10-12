@@ -10,35 +10,47 @@ class CSVExport
 
             global $wpdb;
             if (isset($_GET['filter_action'])) {
+                $filter1 = '';
+                $filter2 = '';
+                $params = array();
+                
                 if (!empty($_GET['payment_status'])) {
-                    $filter1 = "and payment_status = '".sanitize_text_field($_GET['payment_status'])."'";
-                } else {
-                    $filter1 = "";
+                    $payment_status = sanitize_text_field($_GET['payment_status']);
+                    $filter1 = "AND payment_status = %s";
+                    $params[] = $payment_status;
                 }
+
                 if (!empty($_GET['query'])) {
                     $string = trim(sanitize_text_field($_GET['query']));
-                    $filter2 = "and ( custom_data like '%".$string."%')";
-                } else {
-                    $filter2 = "";
+                    $string = '%' . $string . '%';
+                    $filter2 = "AND (custom_data LIKE %s)";
+                    $params[] = $string;
                 }
-                $donationEntries = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "paytm_donation_user_data where 1 ".$filter1.$filter2."  order by date desc", ARRAY_A);
+                $query = "SELECT * FROM " . $wpdb->prefix . "paytm_donation_user_data WHERE 1 " . $filter1 . $filter2 . "  ORDER BY date DESC";
+
+                if (!empty($params)) {
+                    $query = $wpdb->prepare($query, $params);
+                }
+
+                $donationEntries = $wpdb->get_results($query); // No need for ARRAY_A here
             } else {
-                $donationEntries = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "paytm_donation_user_data order by date desc", ARRAY_A);
+                $donationEntries = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "paytm_donation_user_data ORDER BY date DESC"); // No need for ARRAY_A here
             }
+
             $exportArr = [];
 
             $headers = ["OrderId","Name","Email","Phone","Donation","Payment Status","Date","More Details"];
             $filename = "paytm_donation_".time().".csv";
 
             foreach ($donationEntries as $key => $value) {
-                 $decodeData = json_decode($value['custom_data']); 
-                 $donationEntriesFormat[$key][0] =$value['id'];
+                 $decodeData = json_decode($value->custom_data); 
+                 $donationEntriesFormat[$key][0] =$value->id;
                  $donationEntriesFormat[$key][1] = ($decodeData)[0]->value;
                  $donationEntriesFormat[$key][2] = ($decodeData)[1]->value;
                  $donationEntriesFormat[$key][3] = ($decodeData)[2]->value;
                  $donationEntriesFormat[$key][4] = ($decodeData)[3]->value;
-                 $donationEntriesFormat[$key][5] =$value['payment_status'];
-                 $donationEntriesFormat[$key][6] =$value['date'];
+                 $donationEntriesFormat[$key][5] =$value->payment_status;
+                 $donationEntriesFormat[$key][6] =$value->date;
 
                  $j =4;
                  $donationEntriesFormat[$key][7]='';
@@ -129,28 +141,49 @@ function wp_paytm_donation_listings_page() {
     $str = '';
     $offset = ( $page * $records_per_page ) - $records_per_page;
     if (isset($_GET['filter_action'])) {
+        $filter1 = '';
+        $filter2 = '';
+        $params = array();
+
         if (!empty($_GET['payment_status'])) {
-            $filter1 = "and payment_status = '".sanitize_text_field($_GET['payment_status'])."'";
-            $str .= "&filter_action=true&payment_status=".sanitize_text_field($_GET['payment_status']);
-        } else {
-                $filter1 = "";
+            $payment_status = sanitize_text_field($_GET['payment_status']);
+            $filter1 = "AND payment_status = %s";
+            $params[] = $payment_status;
+            $str .= "&filter_action=true&payment_status=" . urlencode($payment_status);
         }
+
         if (!empty($_GET['query'])) {
-             $string = trim(sanitize_text_field($_GET['query']));
-             $filter2 = "and ( custom_data like '%".$string."%')";
-             $str .= "&filter_action=true&query=".$string;
-        } else {
-                $filter2 = "";
+            $string = trim(sanitize_text_field($_GET['query']));
+            $string = '%' . $string . '%';
+            $filter2 = "AND (custom_data LIKE %s)";
+            $params[] = $string;
+            $str .= "&filter_action=true&query=" . urlencode($string);
         }
-        $donationEntries = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "paytm_donation_user_data where 1 ".$filter1.$filter2."  order by date desc limit ".$offset. " , ".$records_per_page);
-        $total = $wpdb->get_var("SELECT COUNT(id)  FROM " . $wpdb->prefix . "paytm_donation_user_data where 1 ".$filter1.$filter2."");
+
+        $query =  "SELECT * FROM " . $wpdb->prefix . "paytm_donation_user_data WHERE 1 " . $filter1 . $filter2 . "  ORDER BY date DESC LIMIT " . intval($offset) . ", " . intval($records_per_page);
+        
+        if (!empty($params)) {
+            $query = $wpdb->prepare($query, $params);
+        }
+        $donationEntries = $wpdb->get_results($query, ARRAY_A);
+
+        $total_query =  "SELECT COUNT(id)  FROM " . $wpdb->prefix . "paytm_donation_user_data WHERE 1 " . $filter1 . $filter2;
+        if (!empty($params)) {
+            $total_query = $wpdb->prepare($total_query, $params);
+        }
+        $total = $wpdb->get_var($total_query);
     } else {
-        $donationEntries = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "paytm_donation_user_data order by date desc limit ".$offset. " , ".$records_per_page);
+        $donationEntries = $wpdb->get_results(
+            "SELECT * FROM " . $wpdb->prefix . "paytm_donation_user_data ORDER BY date DESC LIMIT " . intval($offset) . ", " . intval($records_per_page)
+        );
         $total = $wpdb->get_var("SELECT COUNT(id)  FROM " . $wpdb->prefix . "paytm_donation_user_data");
     }
-?>
 
-<a href="<?php echo admin_url(); ?>/admin.php?page=wp_paytm_donation&export=true<?php echo $str; ?>" class="paytm-export">Export</a>
+
+?>
+<?php if (count($donationEntries) > 0) {     ?>
+<a href="<?php echo esc_url(admin_url().''.'/admin.php?page=wp_paytm_donation&export=true'.$str); ?>" class="paytm-export">Export</a>
+<?php } ?>
 </div>
 <?php
 
@@ -174,31 +207,36 @@ if ($oldLastId!='') {?>
             </tr>
             </thead>
             <tbody>
-            <?php if (count($donationEntries) > 0) { ?>
+            <?php
+            if (count( $donationEntries) > 0) { ?>
                 <?php foreach ($donationEntries as $row) { ?>
                     <tr>
-                    <?php $decodeData = json_decode($row->custom_data); ?>
-                    <th><?php echo $row->id ?></th>
-                    <th><?php echo ($decodeData)[0]->value; ?></th>
-                    <th><?php echo ($decodeData)[1]->value; ?></th>
-                    <th><?php echo ($decodeData)[2]->value; ?></th>
-                    <th><?php echo ($decodeData)[3]->value; ?></th>
+                    <?php 
+                    if(is_object($row)){
+                            $row = (array) $row;
+                    }
+                    $decodeData = json_decode($row['custom_data']);?>
+                    <th><?php echo sanitize_text_field($row['id']); ?></th>
+                    <th><?php echo sanitize_text_field(($decodeData)[0]->value); ?></th>
+                    <th><?php echo sanitize_text_field(($decodeData)[1]->value); ?></th>
+                    <th><?php echo sanitize_text_field(($decodeData)[2]->value); ?></th>
+                    <th><?php echo sanitize_text_field(($decodeData)[3]->value); ?></th>
 
-                    <?php if ($row->payment_status=="Complete Payment") { ?>
+                    <?php if ($row['payment_status'] == "Complete Payment") { ?>
 
                             <th><span class="label label-success">Success</span></th>
  
-                    <?php } else if ($row->payment_status=="Pending Payment") { ?>
+                    <?php } else if ($row['payment_status'] == "Pending Payment") { ?>
                         <th><span class="label label-warning">Pending</span></th>
 
-                    <?php } else if ($row->payment_status=="Payment failed") { ?>
+                    <?php } else if ($row['payment_status'] == "Payment failed") { ?>
                         <th><span class="label label-danger">Failed</span></th>
                     <?php } else { ?>
                         <th><span class="label label-default">NA</span></th>
                     <?php } ?>
 
-                          <th><?php echo $row->date ?></th>
-                          <td><button class="btnPrimary" onclick="displayFullDetails(<?php echo $row->id;?>)" id="myBtn">Full Details</button></td>
+                          <th><?php echo $row['date'] ?></th>
+                          <td><button class="btnPrimary" onclick="displayFullDetails(<?php echo sanitize_text_field($row['id']);?>)" id="myBtn">Full Details</button></td>
                           </tr>
                     <?php } } else { ?>
                     <tr>
@@ -220,7 +258,7 @@ if ($oldLastId!='') {?>
     );
 ?>
 <div class="donation-pagination">
-    <?php echo $pagination; ?>
+    <?php echo sanitize_text_field($pagination); ?>
     </div>
 </div>
 

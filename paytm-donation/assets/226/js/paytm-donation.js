@@ -36,6 +36,7 @@ function paytmDonationJs() {
             jQuery('.paytm-pg-loader').show();
             var allInputs = $('form[name="frmTransaction"]').find(':input');
             serializedata = $('form[name="frmTransaction"]').serializeArray();
+            console.log(serializedata);
             allInputs.each(function() {
                 errorMsg = '';
                 var name = $(this).attr('name');
@@ -91,6 +92,11 @@ function paytmDonationJs() {
                 var donor_phone = $.grep(serializedata, function(element, index) {
                     return (element.name === 'Phone');
                 })[0].value;
+
+                var nonce_token = $.grep(serializedata, function(element, index) {
+                    return (element.name === 'hide_form_field_for_nonce');
+                })[0].value;
+
                 var url = jQuery(this).data('action');
                 var id = jQuery(this).data('id');
                 var pversion = jQuery(this).data('pversion');
@@ -98,10 +104,13 @@ function paytmDonationJs() {
                 jQuery.ajax({
                     url: url,
                     method: "POST",
-                    data: { "txnAmount": donor_amount, 'email': donor_email, "name": donor_name, 'phone': donor_phone, "id": id ,"serializedata":serializedata},
+                    data: { "txnAmount": donor_amount, 'email': donor_email, "name": donor_name, 'phone': donor_phone, "id": id ,"token":nonce_token,"serializedata":serializedata},
                     dataType: 'JSON',
                     beforeSend: function() {},
                     success: function(result) {
+                        console.log('21313');
+                        console.log('============================');
+                        console.log(result);
                         if (result.success == true) {
                             window.Paytm.CheckoutJS.init({
                                 "flow": "DEFAULT",
@@ -117,14 +126,13 @@ function paytmDonationJs() {
                                 },
                                 handler: {
                                     notifyMerchant: function notifyMerchant(eventName, data) {
-                                        /* console.log("notify merchant about the payment state"); */
                                         if (eventName == 'SESSION_EXPIRED') {
                                             alert('Session Expired. Please try again!');
                                             location.reload();
                                         }
                                     },
                                     transactionStatus: function(data) {
-                                        /* console.log("payment status ", data); */
+                                       
                                     }
                                 }
                             }).then(function() {

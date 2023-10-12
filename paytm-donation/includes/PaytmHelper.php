@@ -34,7 +34,16 @@ function paytmHelperInit()
             public static function getTransactionURL($isProduction = 0)
             {
                 if ($isProduction == 1) {
-                    return PaytmConstantsDonation::TRANSACTION_URL_PRODUCTION;
+                    if(PaytmConstantsDonation::PPBL==false){
+                        return PaytmConstantsDonation::TRANSACTION_URL_PRODUCTION . $url;
+                    }                    
+                    $midLength = strlen(preg_replace("/[^A-Za-z]/", "", get_option('paytm_merchant_id')));
+                    if($midLength == 6){
+                        return PaytmConstantsDonation::TRANSACTION_URL_PRODUCTION . $url;
+                    }
+                    if($midLength == 7){
+                        return PaytmConstantsDonation::TRANSACTION_URL_PRODUCTION_PPBL . $url;
+                    } 
                 } else {
                     return PaytmConstantsDonation::TRANSACTION_URL_STAGING;
                 }
@@ -46,7 +55,16 @@ function paytmHelperInit()
             public static function getInitiateURL($isProduction = 0) 
             {
                 if ($isProduction == 1) {
-                    return PaytmConstantsDonation::BLINKCHECKOUT_URL_PRODUCTION;
+                    if(PaytmConstantsDonation::PPBL==false){
+                        return PaytmConstantsDonation::BLINKCHECKOUT_URL_PRODUCTION . $url;
+                    }
+                    $midLength = strlen(preg_replace("/[^A-Za-z]/", "", get_option('paytm_merchant_id')));
+                    if($midLength == 6){
+                        return PaytmConstantsDonation::BLINKCHECKOUT_URL_PRODUCTION . $url;
+                    }
+                    if($midLength == 7){
+                        return PaytmConstantsDonation::BLINKCHECKOUT_URL_PRODUCTION_PPBL . $url;
+                    } 
                 } else {
                     return PaytmConstantsDonation::BLINKCHECKOUT_URL_STAGING;
                 }
@@ -58,7 +76,16 @@ function paytmHelperInit()
             public static function getTransactionStatusURL($isProduction = 0) 
             {
                 if ($isProduction == 1) {
-                    return PaytmConstantsDonation::TRANSACTION_STATUS_URL_PRODUCTION;
+                    if(PaytmConstantsDonation::PPBL==false){
+                        return PaytmConstantsDonation::TRANSACTION_STATUS_URL_PRODUCTION . $url;
+                    }                      
+                    $midLength = strlen(preg_replace("/[^A-Za-z]/", "", get_option('paytm_merchant_id')));
+                    if($midLength == 6){
+                        return PaytmConstantsDonation::TRANSACTION_STATUS_URL_PRODUCTION . $url;
+                    }
+                    if($midLength == 7){
+                        return PaytmConstantsDonation::TRANSACTION_STATUS_URL_PRODUCTION_PPBL . $url;
+                    } 
                 } else {
                     return PaytmConstantsDonation::TRANSACTION_STATUS_URL_STAGING;
                 }
@@ -95,6 +122,7 @@ function paytmHelperInit()
                 $jsonResponse = wp_remote_post( $apiURL, array(
                     'headers' => array("Content-Type"=> "application/json"),
                     'body' => json_encode($requestParamList, JSON_UNESCAPED_SLASHES),
+                    'sslverify'=>false
                 ));
 
         //$response_code = wp_remote_retrieve_response_code( $jsonResponse );
@@ -227,7 +255,11 @@ function paytmHelperInit()
             public function option_exists($name, $site_wide=false)
             {
                 global $wpdb; 
-                return $wpdb->query("SELECT * FROM ". ($site_wide ? $wpdb->base_prefix : $wpdb->prefix). "options WHERE option_name ='$name' LIMIT 1");
+                $table_name = $site_wide ? $wpdb->base_prefix . 'options' : $wpdb->prefix . 'options';
+                $name = esc_sql($name); 
+                $query = $wpdb->prepare("SELECT * FROM $table_name WHERE option_name = %s LIMIT 1", $name);
+                return $result = $wpdb->get_results($query);
+                //return $wpdb->query($wpdb->prepare("SELECT * FROM ". ($site_wide ? $wpdb->base_prefix : $wpdb->prefix). "options WHERE option_name ='$name' LIMIT 1"));
             }
 
             public static function checkValidInput($serializedata){

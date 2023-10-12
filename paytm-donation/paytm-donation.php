@@ -3,7 +3,7 @@
  * Plugin Name: Paytm Payment Donation
  * Plugin URI: https://business.paytm.com/docs/wordpress/
  * Description: This plugin allow you to accept donation payments using Paytm. This plugin will add a simple form that user will fill, when he clicks on submit he will redirected to Paytm website to complete his transaction and on completion his payment, paytm will send that user back to your website along with transactions details. This plugin uses server-to-server verification to add additional security layer for validating transactions. Admin can also see all transaction details with payment status by going to "Paytm Payment Details" from menu in admin.
- * Version: 2.1
+ * Version: 2.2.6
  * Author: Paytm
  * Author URI: https://business.paytm.com/payment-gateway
  * Text Domain: Paytm Payments
@@ -60,7 +60,6 @@ add_action('admin_enqueue_scripts', 'enqueue_admin_plugin_assets');
 function paytm_activation() {
 	global $wpdb, $wp_rewrite;
 	$settings = paytm_settings_list();
-	print_R($settings);die;
 	foreach ($settings as $setting) {
 		if(isset($setting['value'])){
 			add_option($setting['name'], $setting['value']);
@@ -116,7 +115,7 @@ function paytm_activation() {
 
 	require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 	$table_name_paytm = $wpdb->prefix . 'paytm_donation_order_data';
-  $sql_paytm = "CREATE TABLE IF NOT EXISTS $table_name_paytm (
+  	$sql_paytm = "CREATE TABLE IF NOT EXISTS $table_name_paytm (
 			`id` int(11) NOT NULL AUTO_INCREMENT,
 			`order_id` int(11) NOT NULL,
 			`paytm_order_id` VARCHAR(255) NOT NULL,
@@ -144,7 +143,7 @@ function paytm_activation() {
 		`date` datetime,
 		PRIMARY KEY (`id`)
 	)AUTO_INCREMENT=$oldLastId;";			
- $wpdb->query($sql_paytm_custom_data);	     
+ 	$wpdb->query($sql_paytm_custom_data);	     
 
 	if($newpages){
 		wp_cache_delete( 'all_page_ids', 'pages' );
@@ -488,7 +487,6 @@ function paytm_donation_form(){
     $decodeCustomFieldRecord = json_decode(json_encode($customFieldRecord[0]));
 	$decodeCustomFieldRecordArray = (json_decode($decodeCustomFieldRecord->option_value));
 	$dynamic_html = '';
-	//print_r($decodeCustomFieldRecordArray);die;
 	foreach($decodeCustomFieldRecordArray->mytext as $key => $value):
 		$required = 'required';
 		$not_required = '';
@@ -530,8 +528,9 @@ function paytm_donation_form(){
 					$dynamic_html .='</p>';
 		}				
 	endforeach;
-	// echo $dynamic_html;
 
+	$nonce_field = wp_nonce_field(plugin_basename(__FILE__),'hide_form_field_for_nonce');
+	
 	$current_url = esc_url("//".$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI']);	
 	//$html = PaytmHelperDonation::getCallbackMsgPaytm(); 
 	/* --------popup at callback code start------*/
@@ -570,6 +569,7 @@ function paytm_donation_form(){
 	$html = '<form name="frmTransaction" method="post">
 	<div class="paytm-pg-donar-info">'
 					.$dynamic_html.
+					 $nonce_field.
 					'</div>
 
 					<p>
@@ -586,6 +586,18 @@ function initiate_blinkCheckout()
 	extract($_REQUEST);
 	$paytmParams = array();
 	$txntoken = '';
+	$token_val = $_POST['token'];
+	
+	if (!isset($_POST['token'])  || !wp_verify_nonce( $_POST['token'], plugin_basename(__FILE__))){
+	// Actions to do should the nonce is invalid
+		$error = array(
+						"error"=>true,
+    					"message" => "Sorry, your request did not verified"
+					);
+			echo json_encode($error);
+			wp_die();
+
+	} 
 
 	/*added code for validate  data*/
 	if(!empty($serializedata)){
@@ -599,17 +611,26 @@ function initiate_blinkCheckout()
 			wp_die();
 		}
 	}
+
+
 	/*End code for validate  data*/
 
 	if(!empty($txnAmount) && (int)$txnAmount > 0)
 	{
 
 		global $wpdb;
+		$serializedata_final = json_encode($serializedata);
+		$data_array = json_decode($serializedata_final, true);
+		$keys_to_remove = ["hide_form_field_for_nonce", "_wp_http_referer","action"];
+		
+		foreach ($data_array as $key => $item) {
+		    if (in_array($item['name'], $keys_to_remove)) {
+		        unset($data_array[$key]);
+		    }
+		}
 
-		$serializedata = (json_encode($serializedata));
-		$decode = json_decode($serializedata);
-			unset($decode[count($decode)-1]);//removing action =  paytm_donation_request which is last element
-		$serializedata_final = json_encode($decode);
+		$data_array = array_values($data_array);
+		$serializedata_final = json_encode($data_array);
 
 		$table_name_custom = $wpdb->prefix . "paytm_donation_user_data";
 		$custom_data = [
@@ -617,7 +638,7 @@ function initiate_blinkCheckout()
 			'payment_status' => 'Pending Payment',
 			'date' => date('Y-m-d H:i:s'),			
 		];
-		$result_custom = $wpdb->insert($table_name_custom, $custom_data);
+		$result_custom = $wpdb->prepare($wpdb->insert($table_name_custom, $custom_data));
 		if(!$result_custom){
 			throw new Exception($wpdb->last_error);
 		}
@@ -687,7 +708,10 @@ function paytm_donation_response(){
 
 	if(! empty($_POST) && isset($_POST['ORDERID'])){
 		
-
+		//$sanitized_post = array_map('sanitize_text_field', $_POST);
+		foreach ($_POST as $key => $value) {
+        	$_POST[$key] = sanitize_text_field($value);
+    	}	
 		$paytm_merchant_key = trim(get_option('paytm_merchant_key'));
 		$paytm_merchant_id = trim(get_option('paytm_merchant_id'));
 		if(!empty($_POST['CHECKSUMHASH'])){
@@ -702,9 +726,8 @@ function paytm_donation_response(){
 
 					/* save paytm response in db */
 					if(PaytmConstantsDonation::SAVE_PAYTM_RESPONSE && !empty($_POST['STATUS'])){
-						$order_data_id = saveTxnResponse1(
-											sanitize_text_field($_POST), 
-											PaytmHelperDonation::getOrderId(sanitize_text_field($_POST['ORDERID'])));
+				    	$sanitized_post = $_POST;
+						$order_data_id = saveTxnResponse1($sanitized_post, PaytmHelperDonation::getOrderId(sanitize_text_field($_POST['ORDERID'])));
 					}
 					/* save paytm response in db */
 			if($order_id){
@@ -724,7 +747,10 @@ function paytm_donation_response(){
 				} while(!$responseParamList['STATUS'] && $retry < PaytmConstantsDonation::MAX_RETRY_COUNT);
 				/* number of retries untill cURL gets success */
 				if(!isset($responseParamList['STATUS'])){
-					$responseParamList = sanitize_text_field($_POST);
+				    foreach ($_POST as $key => $value) {
+				        $_POST[$key] = sanitize_text_field($value);
+				    }					
+					$responseParamList = $_POST;
 				}
 
 				/* save paytm response in db */
@@ -873,21 +899,56 @@ function paytm_donation_response(){
 /**
 	* save response in db
 	*/
-	function saveTxnResponse1($data  = array(),$order_id, $id = false){
+	function saveTxnResponse1($data  = array(),$order_id="", $id = false){
 		global $wpdb;
 		if(empty($data['STATUS'])) return false;
 		
 		$status 			= (!empty($data['STATUS']) && $data['STATUS'] =='TXN_SUCCESS') ? 1 : 0;
-		$paytm_order_id 	= (!empty($data['ORDERID'])? $data['ORDERID']:'');
-		$transaction_id 	= (!empty($data['TXNID'])? $data['TXNID']:'');
+		$paytm_order_id 	= (!empty($data['ORDERID'])? $data['ORDERID']:0);
+		$transaction_id 	= (!empty($data['TXNID'])? $data['TXNID']:0);
 		
 		if($id !== false){
-			$sql =  "UPDATE `" . $wpdb->prefix . "paytm_donation_order_data` SET `order_id` = '" . $order_id . "', `paytm_order_id` = '" . $paytm_order_id . "', `transaction_id` = '" . $transaction_id . "', `status` = '" . (int)$status . "', `paytm_response` = '" . json_encode($data) . "', `date_modified` = NOW() WHERE `id` = '" . (int)$id . "' AND `paytm_order_id` = '" . $paytm_order_id . "'";
-			$wpdb->query($sql);
+			$wpdb->query(
+			    $wpdb->prepare("UPDATE {$wpdb->prefix}paytm_donation_order_data SET order_id = %s, 
+			            paytm_order_id = %s, 
+			            transaction_id = %s, 
+			            status = %s, 
+			            paytm_response = %s, 
+			            date_modified = NOW() 
+			        WHERE id = %d AND paytm_order_id = %s",
+			        $order_id,
+			        $paytm_order_id,
+			        $transaction_id,
+			        (int)$status,
+			        json_encode($data),
+			        (int)$id,
+			        $paytm_order_id
+			    )
+			);
 			return $id;
 		}else{
-			$sql =  "INSERT INTO `" . $wpdb->prefix . "paytm_donation_order_data` SET `order_id` = '" . $order_id . "', `paytm_order_id` = '" . $paytm_order_id . "', `transaction_id` = '" . $transaction_id . "', `status` = '" . (int)$status . "', `paytm_response` = '" . json_encode($data) . "', `date_added` = NOW(), `date_modified` = NOW()";
-			$wpdb->query($sql);
+			$sql =  $wpdb->insert(
+				    $wpdb->prefix . 'paytm_donation_order_data',
+				    array(
+				        'order_id' => $order_id,
+				        'paytm_order_id' => $paytm_order_id,
+				        'transaction_id' => $transaction_id,
+				        'status' => $status,
+				        'paytm_response' => json_encode($data),
+				        'date_added' => current_time('mysql', 1),
+				        'date_modified' => current_time('mysql', 1),
+				    ),
+				    array(
+				        '%d',
+				        '%s',
+				        '%s',
+				        '%s',
+				        '%s',
+				        '%s',
+				        '%s'
+				    )
+				);
+			$wpdb->query($wpdb->prepare($sql));
 			return $wpdb->insert_id;
 		}
 	}
@@ -896,11 +957,33 @@ function paytm_donation_response(){
     add_action('wp_ajax_initiate_paytmCustomFieldSave','initiate_paytmCustomFieldSave');
     add_action('wp_ajax_nopriv_initiate_paytmCustomFieldSave','initiate_paytmCustomFieldSave');
 
-    function initiate_paytmCustomFieldSave(){
-    echo json_encode($_POST);
-	update_option('paytm_user_field', json_encode($_POST));
-    wp_die();
-    }	
+function initiate_paytmCustomFieldSave() {
+    if (isset($_GET['nonce']) && current_user_can('manage_options')) {
+        $nonce = sanitize_text_field($_GET['nonce']);
+        if (wp_verify_nonce($nonce, 'hide_form_field_for_admin_nonce')) {
+
+            update_option('paytm_user_field', json_encode($_POST));
+            echo json_encode(array('success' => true));
+            wp_die();
+        } else {
+            $error = array(
+                "error"   => true,
+                "message" => "Sorry, your request was not verified."
+            );
+            echo json_encode($error);
+            wp_die();
+        }
+    } else {
+        $error = array(
+            "error"   => true,
+            "message" => "Unauthorized access or nonce value is missing."
+        );
+        echo json_encode($error);
+        wp_die();
+    }
+}
+
+
 
 	add_action('wp_ajax_refresh_Paytmhistory','refresh_Paytmhistory');
 
@@ -941,7 +1024,7 @@ function paytm_donation_response(){
 				];
 
 				if(PaytmHelperDonation::checkUserDataTable()==true){
-					$result_custom = $wpdb->insert($table_name_custom, $custom_data);			
+					$result_custom = $wpdb->insert($wpdb->prepare($table_name_custom, $custom_data));			
 				}
 					
 			endforeach;
