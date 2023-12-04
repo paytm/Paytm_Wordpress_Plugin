@@ -4,7 +4,7 @@ Tags: paytm, paytm plugin, paytm donation, payment, paytm payment, paytm wordpre
 Requires PHP: 7.4
 Requires at least: 4.9
 Tested up to: 6.2.2
-Stable tag: 2.2.6
+Stable tag: 2.2.7
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,6 +27,8 @@ This plugin allow you to accept donation payments using Paytm. This plugin will 
 * Php-curl
 
 == Changelog ==
+= 2.2.7 =
+* Design issues fixes
 
 = 2.2.6 =
 * Added Features and Security Fixes
