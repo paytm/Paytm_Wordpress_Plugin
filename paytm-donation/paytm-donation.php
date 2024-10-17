@@ -3,7 +3,7 @@
  * Plugin Name: Paytm Payment Donation
  * Plugin URI: https://business.paytm.com/docs/wordpress/
  * Description: This plugin allow you to accept donation payments using Paytm. This plugin will add a simple form that user will fill, when he clicks on submit he will redirected to Paytm website to complete his transaction and on completion his payment, paytm will send that user back to your website along with transactions details. This plugin uses server-to-server verification to add additional security layer for validating transactions. Admin can also see all transaction details with payment status by going to "Paytm Payment Details" from menu in admin.
- * Version: 2.2.8
+ * Version: 2.3.1
  * Author: Paytm
  * Author URI: https://business.paytm.com/payment-gateway
  * Text Domain: Paytm Payments

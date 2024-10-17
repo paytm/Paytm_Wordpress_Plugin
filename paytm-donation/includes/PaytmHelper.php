@@ -33,6 +33,7 @@ function paytmHelperInit()
             **/
             public static function getTransactionURL($isProduction = 0)
             {
+                $url = isset($url) ? $url : '';
                 if ($isProduction == 1) {
                     if(PaytmConstantsDonation::PPBL==false){
                         return PaytmConstantsDonation::TRANSACTION_URL_PRODUCTION . $url;
@@ -54,6 +55,7 @@ function paytmHelperInit()
              **/
             public static function getInitiateURL($isProduction = 0) 
             {
+                $url = isset($url) ? $url : '';
                 if ($isProduction == 1) {
                     if(PaytmConstantsDonation::PPBL==false){
                         return PaytmConstantsDonation::BLINKCHECKOUT_URL_PRODUCTION . $url;
@@ -75,6 +77,7 @@ function paytmHelperInit()
 
             public static function getTransactionStatusURL($isProduction = 0) 
             {
+                $url = isset($url) ? $url : '';
                 if ($isProduction == 1) {
                     if(PaytmConstantsDonation::PPBL==false){
                         return PaytmConstantsDonation::TRANSACTION_STATUS_URL_PRODUCTION . $url;
