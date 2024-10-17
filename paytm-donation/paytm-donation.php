@@ -3,7 +3,7 @@
  * Plugin Name: Paytm Payment Donation
  * Plugin URI: https://business.paytm.com/docs/wordpress/
  * Description: This plugin allow you to accept donation payments using Paytm. This plugin will add a simple form that user will fill, when he clicks on submit he will redirected to Paytm website to complete his transaction and on completion his payment, paytm will send that user back to your website along with transactions details. This plugin uses server-to-server verification to add additional security layer for validating transactions. Admin can also see all transaction details with payment status by going to "Paytm Payment Details" from menu in admin.
- * Version: 2.2.7
+ * Version: 2.2.8
  * Author: Paytm
  * Author URI: https://business.paytm.com/payment-gateway
  * Text Domain: Paytm Payments
@@ -184,9 +184,9 @@ function paytm_settings_list(){
     $websiteOptionFromDB = json_decode(get_option('websiteOptionDonation'), true);
 
     $webhookUrl = esc_url(get_site_url() . '/?webhook=yes');
-    $paytmDashboardLink = esc_url("https://dashboard.paytm.com/next/apikeys");
+    $paytmDashboardLink = esc_url("https://dashboard.paytmpayments.com/next/apikeys");
     $paytmPaymentStatusLink = esc_url("https://developer.paytm.com/docs/payment-status/"); 
-    $dashboardWebhookUrl = esc_url("https://dashboard.paytm.com/next/webhook-url");
+    $dashboardWebhookUrl = esc_url("https://dashboard.paytmpayments.com/next/webhook-url");
 
 	$settings = array(
 		array(
@@ -764,24 +764,24 @@ function paytm_donation_response(){
 
 				if($responseParamList['STATUS'] == 'TXN_SUCCESS' && $responseParamList['TXNAMOUNT'] == sanitize_text_field($_POST['TXNAMOUNT'])) {
 					$msg = "Thank you for your order. Your transaction has been successful.";
-					$wpdb->query($wpdb->prepare("UPDATE ".$wpdb->prefix . "paytm_donation_user_data SET payment_status = 'Complete Payment' WHERE  id = %d", sanitize_text_field($_POST['ORDERID'])));
+					$wpdb->query($wpdb->prepare("UPDATE ".$wpdb->prefix . "paytm_donation_user_data SET payment_status = %s WHERE  id = %d", "Complete Payment", sanitize_text_field($_POST['ORDERID'])));
 				
 				} else  {
 					//$msg = "It seems some issue in server to server communication. Kindly connect with administrator.";
 					$msg = "Thank You. However, the transaction has been Failed For Reason: " . sanitize_text_field($_POST['RESPMSG']);
-					$wpdb->query($wpdb->prepare("UPDATE ".$wpdb->prefix . "paytm_donation_user_data SET payment_status = 'Payment failed' WHERE id = %d", sanitize_text_field($_POST['ORDERID'])));
+					$wpdb->query($wpdb->prepare("UPDATE ".$wpdb->prefix . "paytm_donation_user_data SET payment_status = %s WHERE id = %d", 'Payment failed', sanitize_text_field($_POST['ORDERID'])));
 				}
 
 			} else {
 				$msg = "Thank You. However, the transaction has been Failed For Reason: " . sanitize_text_field($_POST['RESPMSG']);
-				$wpdb->query($wpdb->prepare("UPDATE ".$wpdb->prefix . "paytm_donation_user_data SET payment_status = 'Cancelled Payment' WHERE id = %d", sanitize_text_field($_POST['ORDERID'])));
+				$wpdb->query($wpdb->prepare("UPDATE ".$wpdb->prefix . "paytm_donation_user_data SET payment_status = %s WHERE id = %d", 'Cancelled Payment', sanitize_text_field($_POST['ORDERID'])));
 			}
 		} else {
 			$msg = "Security error!";
-			$wpdb->query($wpdb->prepare("UPDATE ".$wpdb->prefix . "paytm_donation_user_data SET payment_status = 'Payment Error' WHERE  id = %d", sanitize_text_field($_POST['ORDERID'])));
+			$wpdb->query($wpdb->prepare("UPDATE ".$wpdb->prefix . "paytm_donation_user_data SET payment_status = %s WHERE  id = %d",'Payment Error', sanitize_text_field($_POST['ORDERID'])));
 		}
 		if (isset($_GET['webhook']) && $_GET['webhook'] =='yes') { 
-			 echo wp_kses("Webhook Received", $allowedposttags);
+			// echo wp_kses("Webhook Received", $allowedposttags);
 			 exit;
 		}
 		// ------ custom code for callback popup ---- 

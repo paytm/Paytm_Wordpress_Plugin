@@ -36,7 +36,6 @@ function paytmDonationJs() {
             jQuery('.paytm-pg-loader').show();
             var allInputs = $('form[name="frmTransaction"]').find(':input');
             serializedata = $('form[name="frmTransaction"]').serializeArray();
-            console.log(serializedata);
             allInputs.each(function() {
                 errorMsg = '';
                 var name = $(this).attr('name');
@@ -108,9 +107,6 @@ function paytmDonationJs() {
                     dataType: 'JSON',
                     beforeSend: function() {},
                     success: function(result) {
-                        console.log('21313');
-                        console.log('============================');
-                        console.log(result);
                         if (result.success == true) {
                             window.Paytm.CheckoutJS.init({
                                 "flow": "DEFAULT",

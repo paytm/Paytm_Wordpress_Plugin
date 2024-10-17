@@ -1,17 +1,17 @@
 <?php
 
 class PaytmConstantsDonation{
-	CONST TRANSACTION_URL_PRODUCTION			       = "https://securegw.paytm.in/order/process";
-	CONST TRANSACTION_STATUS_URL_PRODUCTION		       = "https://securegw.paytm.in/order/status";
+	CONST TRANSACTION_URL_PRODUCTION			       = "https://secure.paytmpayments.com/order/process";
+	CONST TRANSACTION_STATUS_URL_PRODUCTION		       = "https://secure.paytmpayments.com/order/status";
 
 	CONST TRANSACTION_URL_PRODUCTION_PPBL			   = "https://securepg.paytm.in/order/process";
 	CONST TRANSACTION_STATUS_URL_PRODUCTION_PPBL	   = "https://securepg.paytm.in/order/status";	
 
-	CONST TRANSACTION_URL_STAGING				        = "https://securegw-stage.paytm.in/order/process";
-	CONST TRANSACTION_STATUS_URL_STAGING		        = "https://securegw-stage.paytm.in/order/status";
+	CONST TRANSACTION_URL_STAGING				        = "https://securestage.paytmpayments.com/order/process";
+	CONST TRANSACTION_STATUS_URL_STAGING		        = "https://securestage.paytmpayments.com/order/status";
 
-	CONST BLINKCHECKOUT_URL_STAGING				        = "https://securegw-stage.paytm.in";
-	CONST BLINKCHECKOUT_URL_PRODUCTION			        = "https://securegw.paytm.in";
+	CONST BLINKCHECKOUT_URL_STAGING				        = "https://securestage.paytmpayments.com";
+	CONST BLINKCHECKOUT_URL_PRODUCTION			        = "https://secure.paytmpayments.com";
 	CONST BLINKCHECKOUT_URL_PRODUCTION_PPBL				= "https://securepg.paytm.in";
 
 	CONST PPBL =  false;
@@ -20,14 +20,14 @@ class PaytmConstantsDonation{
 	CONST CHANNEL_ID							= "WEB";
 	CONST APPEND_TIMESTAMP						= true;
 	CONST X_REQUEST_ID							= "PLUGIN_WORDPRESS_";
-	CONST PLUGIN_VERSION_FOLDER					= "227";
+	CONST PLUGIN_VERSION_FOLDER					= "228";
 
 	CONST MAX_RETRY_COUNT						= 3;
 	CONST CONNECT_TIMEOUT						= 10;
 	CONST TIMEOUT								= 10;
 
-	CONST LAST_UPDATED							= "20231201";
-	CONST PLUGIN_VERSION						= "2.2.7";
+	CONST LAST_UPDATED							= "20241017";
+	CONST PLUGIN_VERSION						= "2.2.8";
 	CONST PLUGIN_DOC_URL						= "https://business.paytm.com/docs/wordpress/";
 
 	CONST CUSTOM_CALLBACK_URL					= "";

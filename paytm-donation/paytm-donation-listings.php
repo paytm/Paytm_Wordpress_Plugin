@@ -26,7 +26,7 @@ class CSVExport
                     $filter2 = "AND (custom_data LIKE %s)";
                     $params[] = $string;
                 }
-                $query = "SELECT * FROM " . $wpdb->prefix . "paytm_donation_user_data WHERE 1 " . $filter1 . $filter2 . "  ORDER BY date DESC";
+                $query = "SELECT pdud.*,pdod.transaction_id FROM " . $wpdb->prefix . "paytm_donation_user_data as pdud LEFT JOIN " . $wpdb->prefix . "paytm_donation_order_data as pdod on pdud.id = pdod.order_id WHERE 1 " . $filter1 . $filter2 . "  ORDER BY date DESC";
 
                 if (!empty($params)) {
                     $query = $wpdb->prepare($query, $params);
@@ -34,12 +34,12 @@ class CSVExport
 
                 $donationEntries = $wpdb->get_results($query); // No need for ARRAY_A here
             } else {
-                $donationEntries = $wpdb->get_results("SELECT * FROM " . $wpdb->prefix . "paytm_donation_user_data ORDER BY date DESC"); // No need for ARRAY_A here
+                $donationEntries = $wpdb->get_results("SELECT pdud.*,pdod.transaction_id FROM " . $wpdb->prefix . "paytm_donation_user_data as pdud LEFT JOIN " . $wpdb->prefix . "paytm_donation_order_data as pdod on pdud.id = pdod.order_id ORDER BY date DESC"); // No need for ARRAY_A here
             }
 
             $exportArr = [];
 
-            $headers = ["OrderId","Name","Email","Phone","Donation","Payment Status","Date","More Details"];
+            $headers = ["OrderId","Name","Email","Phone","Donation","Payment Status","Transaction ID","Date","More Details"];
             $filename = "paytm_donation_".time().".csv";
 
             foreach ($donationEntries as $key => $value) {
@@ -50,13 +50,14 @@ class CSVExport
                  $donationEntriesFormat[$key][3] = ($decodeData)[2]->value;
                  $donationEntriesFormat[$key][4] = ($decodeData)[3]->value;
                  $donationEntriesFormat[$key][5] =$value->payment_status;
-                 $donationEntriesFormat[$key][6] =$value->date;
+                 $donationEntriesFormat[$key][6] =$value->transaction_id;
+                 $donationEntriesFormat[$key][7] =$value->date;
 
                  $j =4;
-                 $donationEntriesFormat[$key][7]='';
+                 $donationEntriesFormat[$key][8]='';
                 for ($i=5; $i<=count($decodeData); $i++) {
                     /* ---  Getting data from 4th position and then incrementing it ----- */
-                    $donationEntriesFormat[$key][7] .= $decodeData[$j]->name.' : '.$decodeData[$j]->value."\n";
+                    $donationEntriesFormat[$key][8] .= $decodeData[$j]->name.' : '.$decodeData[$j]->value."\n";
                     $j++;
                 }
             }
@@ -87,11 +88,7 @@ class CSVExport
 
 // Instantiate a singleton of this plugin
 $csvExport = new CSVExport();
-?>
 
-
-
-<?php
 ob_start();
 
 function wp_paytm_donation_listings_page() {
@@ -160,7 +157,11 @@ function wp_paytm_donation_listings_page() {
             $str .= "&filter_action=true&query=" . urlencode($string);
         }
 
-        $query =  "SELECT * FROM " . $wpdb->prefix . "paytm_donation_user_data WHERE 1 " . $filter1 . $filter2 . "  ORDER BY date DESC LIMIT " . intval($offset) . ", " . intval($records_per_page);
+        $query =  "SELECT pdud.*,pdod.transaction_id FROM " . $wpdb->prefix . "paytm_donation_user_data as pdud LEFT JOIN " . $wpdb->prefix . "paytm_donation_order_data as pdod on pdud.id = pdod.order_id WHERE 1 " . $filter1 . $filter2 . "  ORDER BY date DESC LIMIT " . intval($offset) . ", " . intval($records_per_page);
+        //$query ="SELECT pdud.*,pdod.transaction_id FROM " . $wpdb->prefix . "paytm_donation_user_data as pdud LEFT JOIN " . $wpdb->prefix . "paytm_donation_order_data as pdod on pdud.id = pdod.order_id ORDER BY date DESC LIMIT " . intval($offset) . ", " . intval($records_per_page);
+
+        /* echo $query;
+        die(); */
         
         if (!empty($params)) {
             $query = $wpdb->prepare($query, $params);
@@ -173,9 +174,11 @@ function wp_paytm_donation_listings_page() {
         }
         $total = $wpdb->get_var($total_query);
     } else {
-        $donationEntries = $wpdb->get_results(
-            "SELECT * FROM " . $wpdb->prefix . "paytm_donation_user_data ORDER BY date DESC LIMIT " . intval($offset) . ", " . intval($records_per_page)
-        );
+        //$query = "SELECT * FROM " . $wpdb->prefix . "paytm_donation_user_data ORDER BY date DESC LIMIT " . intval($offset) . ", " . intval($records_per_page);
+        $query ="SELECT pdud.*,pdod.transaction_id FROM " . $wpdb->prefix . "paytm_donation_user_data as pdud LEFT JOIN " . $wpdb->prefix . "paytm_donation_order_data as pdod on pdud.id = pdod.order_id ORDER BY date DESC LIMIT " . intval($offset) . ", " . intval($records_per_page);
+        /* echo $query;
+        die(); */
+        $donationEntries = $wpdb->get_results($query);
         $total = $wpdb->get_var("SELECT COUNT(id)  FROM " . $wpdb->prefix . "paytm_donation_user_data");
     }
 
@@ -202,6 +205,7 @@ if ($oldLastId!='') {?>
             <th>Phone</th>
             <th>Donation</th>
             <th>Payment Status</th>
+            <th>Transaction ID</th>
             <th>Date</th>
             <th>View Details</th>
             </tr>
@@ -234,8 +238,10 @@ if ($oldLastId!='') {?>
                     <?php } else { ?>
                         <th><span class="label label-default">NA</span></th>
                     <?php } ?>
-
-                          <th><?php echo $row['date'] ?></th>
+                        
+                        <th><?php echo $row['transaction_id']?$row['transaction_id']:"NA"; ?></th>
+                        <th><?php echo $row['date'] ?></th>
+                          
                           <td><button class="btnPrimary" onclick="displayFullDetails(<?php echo sanitize_text_field($row['id']);?>)" id="myBtn">Full Details</button></td>
                           </tr>
                     <?php } } else { ?>
@@ -272,6 +278,7 @@ var span = document.getElementsByClassName("close")[0];
 
 // When the user clicks the button, open the modal 
 function displayFullDetails(order_id) {
+   // var txnData = <?php /* echo $donationEntries['paytm_response'];  */?>;
     var decodeData = <?php echo (json_encode($donationEntries)); ?>;
     // console.log(decodeData);
     let res = decodeData.find(({id}) => id == order_id);
