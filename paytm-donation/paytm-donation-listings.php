@@ -120,7 +120,7 @@ function wp_paytm_donation_listings_page() {
     <form id="posts-filter" method="get">
     <div class="alignleft actions">
     <input type="hidden" name="page" value="wp_paytm_donation">
-    <input type="text" name="query" value="<?=isset($_GET['query'])?sanitize_text_field($_GET['query']):""?>" placeholder="search">
+    <input type="text" name="query" value="<?= isset($_GET['query'])?esc_attr(sanitize_text_field($_GET['query'])):""?>" placeholder="search">
     <select name="payment_status" id="payment_status" class="postform">
     <option value="0" selected="selected">All Payment Status</option>
     <option class="level-0" value="Complete Payment" <?=(isset($_GET['payment_status']) && $_GET['payment_status']=="Complete Payment")?"selected":""?>>Success</option>
@@ -219,12 +219,78 @@ if ($oldLastId!='') {?>
                     if(is_object($row)){
                             $row = (array) $row;
                     }
+                    global $allowedposttags;
+                    $allowed_atts = array(
+                        'align'      => array(),
+                        'class'      => array(),
+                        'type'       => array(),
+                        'id'         => array(),
+                        'dir'        => array(),
+                        'lang'       => array(),
+                        'style'      => array(),
+                        'xml:lang'   => array(),
+                        'src'        => array(),
+                        'alt'        => array(),
+                        'href'       => array(),
+                        'rel'        => array(),
+                        'rev'        => array(),
+                        'target'     => array(),
+                        'novalidate' => array(),
+                        'type'       => array(),
+                        'value'      => array(),
+                        'name'       => array(),
+                        'tabindex'   => array(),
+                        'action'     => array(),
+                        'method'     => array(),
+                        'for'        => array(),
+                        'width'      => array(),
+                        'height'     => array(),
+                        'data'       => array(),
+                        'title'      => array(),
+                    );
+                    $allowedposttags['form']     = $allowed_atts;
+                    $allowedposttags['label']    = $allowed_atts;
+                    $allowedposttags['input']    = $allowed_atts;
+                    $allowedposttags['textarea'] = $allowed_atts;
+                    $allowedposttags['iframe']   = $allowed_atts;
+                    $allowedposttags['script']   = $allowed_atts;
+                    $allowedposttags['style']    = $allowed_atts;
+                    $allowedposttags['strong']   = $allowed_atts;
+                    $allowedposttags['small']    = $allowed_atts;
+                    $allowedposttags['table']    = $allowed_atts;
+                    $allowedposttags['span']     = $allowed_atts;
+                    $allowedposttags['abbr']     = $allowed_atts;
+                    $allowedposttags['code']     = $allowed_atts;
+                    $allowedposttags['pre']      = $allowed_atts;
+                    $allowedposttags['div']      = $allowed_atts;
+                    $allowedposttags['img']      = $allowed_atts;
+                    $allowedposttags['h1']       = $allowed_atts;
+                    $allowedposttags['h2']       = $allowed_atts;
+                    $allowedposttags['h3']       = $allowed_atts;
+                    $allowedposttags['h4']       = $allowed_atts;
+                    $allowedposttags['h5']       = $allowed_atts;
+                    $allowedposttags['h6']       = $allowed_atts;
+                    $allowedposttags['ol']       = $allowed_atts;
+                    $allowedposttags['ul']       = $allowed_atts;
+                    $allowedposttags['li']       = $allowed_atts;
+                    $allowedposttags['em']       = $allowed_atts;
+                    $allowedposttags['hr']       = $allowed_atts;
+                    $allowedposttags['br']       = $allowed_atts;
+                    $allowedposttags['tr']       = $allowed_atts;
+                    $allowedposttags['td']       = $allowed_atts;
+                    $allowedposttags['p']        = $allowed_atts;
+                    $allowedposttags['a']        = $allowed_atts;
+                    $allowedposttags['b']        = $allowed_atts;
+                    $allowedposttags['i']        = $allowed_atts;
+                    $allowedposttags['select']        = $allowed_atts;
+                    $allowedposttags['option']        = $allowed_atts;
+
                     $decodeData = json_decode($row['custom_data']);?>
-                    <th><?php echo sanitize_text_field($row['id']); ?></th>
-                    <th><?php echo sanitize_text_field(($decodeData)[0]->value); ?></th>
-                    <th><?php echo sanitize_text_field(($decodeData)[1]->value); ?></th>
-                    <th><?php echo sanitize_text_field(($decodeData)[2]->value); ?></th>
-                    <th><?php echo sanitize_text_field(($decodeData)[3]->value); ?></th>
+                    <th><?php echo wp_kses($row['id'], $allowedposttags) ?></th>
+                    <th><?php echo wp_kses($decodeData[0]->value, $allowedposttags); ?></th>
+                    <th><?php echo wp_kses($decodeData[1]->value, $allowedposttags); ?></th>
+                    <th><?php echo wp_kses($decodeData[2]->value, $allowedposttags); ?></th>
+                    <th><?php echo wp_kses($decodeData[3]->value, $allowedposttags); ?></th>
 
                     <?php if ($row['payment_status'] == "Complete Payment") { ?>
 
@@ -239,10 +305,10 @@ if ($oldLastId!='') {?>
                         <th><span class="label label-default">NA</span></th>
                     <?php } ?>
                         
-                        <th><?php echo $row['transaction_id']?$row['transaction_id']:"NA"; ?></th>
-                        <th><?php echo $row['date'] ?></th>
+                        <th><?php echo  wp_kses($row['transaction_id']?$row['transaction_id']:"NA", $allowedposttags); ?></th>
+                        <th><?php echo  wp_kses($row['date'], $allowedposttags) ?></th>
                           
-                          <td><button class="btnPrimary" onclick="displayFullDetails(<?php echo sanitize_text_field($row['id']);?>)" id="myBtn">Full Details</button></td>
+                          <td><button class="btnPrimary" onclick="displayFullDetails(<?php echo  wp_kses($row['id'], $allowedposttags);?>)" id="myBtn">Full Details</button></td>
                           </tr>
                     <?php } } else { ?>
                     <tr>
@@ -264,7 +330,7 @@ if ($oldLastId!='') {?>
     );
 ?>
 <div class="donation-pagination">
-    <?php echo sanitize_text_field($pagination); ?>
+    <?php echo wp_kses($pagination, $allowedposttags); ?>
     </div>
 </div>
 
@@ -309,7 +375,7 @@ window.onclick = function(event) {
 }
 
 jQuery('.refresh_history_record').on('click', function() {
-    var ajax_url = "<?php echo admin_url('admin-ajax.php'); ?>?action=refresh_Paytmhistory";
+    var ajax_url = "<?php echo esc_url(admin_url('admin-ajax.php')); ?>?action=refresh_Paytmhistory";
     $('.refresh_history_record').prop('disabled', true);
  
     jQuery.ajax({

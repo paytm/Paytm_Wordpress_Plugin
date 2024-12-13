@@ -100,14 +100,14 @@ function wp_paytm_donation_user_field_page()
         <?php $readonly = ''; if ($value=='Name' || $value=='Email' || $value=='Phone' || $value=='Amount'){
             $readonly = 'readonly';
          } ?>
-        <input type="text" name="mytext[]" Placeholder="Field Name" value="<?php echo $value;?>" <?php echo $readonly;?>>
+        <input type="text" name="mytext[]" Placeholder="Field Name" value="<?php echo esc_attr($value);?>" <?php echo esc_attr($readonly);?>>
 
         <select name="is_required[]" <?php if($i<=3){ echo 'style="pointer-events: none;"';}?> >
             <?php foreach($requiredType as $fieldTypeValue):?>
                 <?php if($i<=3){?>
                     <option value="yes">yes</option>
                     <?php }else{ ?>
-                <option value="<?php echo $fieldTypeValue;?>" <?php echo ($decodeCustomFieldRecordArray->is_required[$key] == $fieldTypeValue) ? 'selected' : ''; ?>><?php echo $fieldTypeValue;?></option>
+                <option value="<?php echo esc_attr($fieldTypeValue);?>" <?php echo esc_attr(($decodeCustomFieldRecordArray->is_required[$key] == $fieldTypeValue) ? 'selected' : ''); ?>><?php echo esc_attr($fieldTypeValue);?></option>
                 <?php };?>
             <?php endforeach;?>
         </select>  
@@ -115,10 +115,10 @@ function wp_paytm_donation_user_field_page()
         <select name="mytype[]" <?php if($i<=3){ echo 'style="pointer-events: none;"';}?> >
             <option value="">Select</option>
             <?php foreach($fieldType as $fieldTypeValue):?>
-                <option value="<?php echo $fieldTypeValue;?>" <?php echo ($decodeCustomFieldRecordArray->mytype[$key] == $fieldTypeValue) ? 'selected' : ''; ?> ><?php echo $fieldTypeValue;?></option>
+                <option value="<?php echo esc_attr($fieldTypeValue);?>" <?php echo ($decodeCustomFieldRecordArray->mytype[$key] == $fieldTypeValue) ? 'selected' : ''; ?> ><?php echo esc_attr($fieldTypeValue);?></option>
             <?php endforeach;?>
         </select>
-        <input type="text" name="myvalue[]" Placeholder="Comma Seperated Value" value="<?php echo $decodeCustomFieldRecordArray->myvalue[$key];?>">
+        <input type="text" name="myvalue[]" Placeholder="Comma Seperated Value" value="<?php echo esc_attr($decodeCustomFieldRecordArray->myvalue[$key]);?>">
         <?php if ($value!=='Name' && $value!=='Email' && $value!=='Phone' && $value!== 'Amount') {?>
         <a href="#" class="paytmDelete">Delete</a>
         <?php } ?>
@@ -130,7 +130,7 @@ function wp_paytm_donation_user_field_page()
 
     //$nonce_field = wp_nonce_field(plugin_basename(__FILE__),'hide_form_field_for_admin_nonce');
 
-    echo '<input type="button" value="Save Changes" class="button-primary" id="paytm-paytmCustomFieldSave" data-action="'.admin_url('admin-ajax.php').'?action=initiate_paytmCustomFieldSave&nonce='.wp_create_nonce( 'hide_form_field_for_admin_nonce' ).'" data-id="'.$post_paytmCustomField.'" />';
+    echo '<input type="button" value="Save Changes" class="button-primary" id="paytm-paytmCustomFieldSave" data-action="'.esc_attr(admin_url('admin-ajax.php').'?action=initiate_paytmCustomFieldSave&nonce='.wp_create_nonce( 'hide_form_field_for_admin_nonce' )).'" data-id="'.esc_attr($post_paytmCustomField).'" />';
     ?>
 </form>
 <div class="Instructions">
@@ -221,7 +221,7 @@ jQuery('#paytm-paytmCustomFieldSave').on('click', function() {
         return false;
     }          
 
-    var ajax_url = "<?php echo admin_url('admin-ajax.php'); ?>";
+    var ajax_url = "<?php echo esc_attr(admin_url('admin-ajax.php')); ?>";
     var url = jQuery(this).data('action');
     var id = jQuery(this).data('id');
     jQuery.ajax({
@@ -246,7 +246,7 @@ jQuery('#paytm-paytmCustomFieldSave').on('click', function() {
 });
 
 jQuery('.refresh_history_record').on('click', function() {
-    var ajax_url = "<?php echo admin_url('admin-ajax.php'); ?>?action=refresh_Paytmhistory";
+    var ajax_url = "<?php echo esc_attr(admin_url('admin-ajax.php')); ?>?action=refresh_Paytmhistory";
     jQuery('.refresh_history_record').prop('disabled', true);
    
         jQuery.ajax({

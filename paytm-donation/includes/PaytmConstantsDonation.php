@@ -20,15 +20,15 @@ class PaytmConstantsDonation{
 	CONST CHANNEL_ID							= "WEB";
 	CONST APPEND_TIMESTAMP						= true;
 	CONST X_REQUEST_ID							= "PLUGIN_WORDPRESS_";
-	CONST PLUGIN_VERSION_FOLDER					= "231";
+	CONST PLUGIN_VERSION_FOLDER					= "232";
 
 	CONST MAX_RETRY_COUNT						= 3;
 	CONST CONNECT_TIMEOUT						= 10;
 	CONST TIMEOUT								= 10;
 
-	CONST LAST_UPDATED							= "20241017";
-	CONST PLUGIN_VERSION						= "2.3.1";
-	CONST PLUGIN_DOC_URL						= "https://business.paytm.com/docs/wordpress/";
+	CONST LAST_UPDATED							= "20241213";
+	CONST PLUGIN_VERSION						= "2.3.2";
+	CONST PLUGIN_DOC_URL						= "https://paytmpayments.com/docs/wordpress/";
 
 	CONST CUSTOM_CALLBACK_URL					= "";
 

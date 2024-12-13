@@ -255,6 +255,10 @@ function paytmHelperInit()
 			  </div>';
                 echo wp_kses($databaseUpgradePop, $allowedposttags);
             }
+            function PDValidate($str)
+            {
+                return esc_html(esc_attr(sanitize_text_field($str)));
+            }
             public function option_exists($name, $site_wide=false)
             {
                 global $wpdb; 

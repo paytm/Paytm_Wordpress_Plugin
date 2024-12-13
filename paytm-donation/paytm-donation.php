@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: Paytm Payment Donation
- * Plugin URI: https://business.paytm.com/docs/wordpress/
+ * Plugin URI: https://paytmpayments.com/docs/wordpress/
  * Description: This plugin allow you to accept donation payments using Paytm. This plugin will add a simple form that user will fill, when he clicks on submit he will redirected to Paytm website to complete his transaction and on completion his payment, paytm will send that user back to your website along with transactions details. This plugin uses server-to-server verification to add additional security layer for validating transactions. Admin can also see all transaction details with payment status by going to "Paytm Payment Details" from menu in admin.
- * Version: 2.3.1
+ * Version: 2.3.2
  * Author: Paytm
- * Author URI: https://business.paytm.com/payment-gateway
+ * Author URI: https://paytmpayments.com/payment-gateway
  * Text Domain: Paytm Payments
  */
 
@@ -358,7 +358,7 @@ $paytmConfig = '<div class="wrap">
 			echo wp_kses($paytmConfig, $allowedposttags);
 
 					wp_nonce_field('update-options');
-					echo $settingFormHtml;
+					echo wp_kses($settingFormHtml, $allowedposttags);
 					  
 			echo wp_kses('<table class="form-table">', $allowedposttags);
 						$settings = paytm_settings_list();
@@ -372,10 +372,10 @@ $paytmConfig = '<div class="wrap">
 								 
 		
 							} elseif ($setting['type']=='select') {
-								echo '<select name="'.$setting['name'].'" required="required">' ;
+								echo '<select name="'.esc_attr($setting['name']).'" required="required">' ;
 								foreach ($setting['values'] as $value=>$name) {
 
-								echo '<option value="'.$value.'" ' .(get_option($setting['name'])==$value? '  selected="selected"' : ''). '>'.$name.'</option>';
+								echo '<option value="'.esc_attr($value).'" ' .(get_option($setting['name'])==$value? '  selected="selected"' : ''). '>'.esc_attr($name).'</option>';
 									 
 								}
 								 
@@ -397,7 +397,7 @@ $paytmConfig = '<div class="wrap">
 										<input id="updatePaytmConfiguration" type="hidden" name="action" value="update" />';
 										echo '<input type="hidden" name="page_options" value="';
 										foreach ($settings as $setting) {
-											echo $setting['name'].',';
+											echo esc_attr($setting['name']).',';
 										}
 									$tableEnd .= '" />
 									</td>
@@ -428,7 +428,7 @@ $paytmConfig = '<div class="wrap">
 		echo '<script>
 			jQuery(".refresh_history_record").on("click", function() {
 			    var ajax_url = "';
-			    echo admin_url( 'admin-ajax.php' );
+			    echo esc_attr(admin_url( 'admin-ajax.php' ));
 			    echo '?action=refresh_Paytmhistory";
 			    $(".refresh_history_record").prop("disabled", true);
 			        jQuery.ajax({
@@ -545,17 +545,17 @@ function paytm_donation_form(){
 			<div id="myModal" class="modal">
 			    <!-- Modal content -->
 			    <div class="modal-content">
-				    <a href="<?php echo get_permalink(get_the_ID()); ?>" id="closeRedirect" class="close">&times;</a> 
+				    <a href="<?php echo esc_url(get_permalink(get_the_ID())); ?>" id="closeRedirect" class="close">&times;</a> 
 						<div>
-							<?php echo $msg; ?>
+							<?php echo esc_html($msg); ?>
 						<table width="100%" class="table-view-list" align="center" cellpadding="10" border="0">
 							<tr><td colspan="3">&nbsp;</td></tr>
-							<tr><th align="right" width="50%">Order Id</th><td>:</td><td><?php echo $orderId; ?></td></tr>
-							<tr><th align="right">Transaction Id</th><td>:</td><td><?php echo $txnId; ?></td></tr>
-							<tr><th align="right">Amount</th><td>:</td><td><?php echo $txnAmount; ?></td></tr>
+							<tr><th align="right" width="50%">Order Id</th><td>:</td><td><?php echo esc_html($orderId); ?></td></tr>
+							<tr><th align="right">Transaction Id</th><td>:</td><td><?php echo esc_html($txnId); ?></td></tr>
+							<tr><th align="right">Amount</th><td>:</td><td><?php echo esc_html($txnAmount); ?></td></tr>
 							<tr><td colspan="3"></td></tr>
 						</table> 
-				   <a href="<?php echo get_permalink(get_the_ID()); ?>" id="onclickbutton" class="okbutton button-primary">OK</a>
+				   <a href="<?php echo esc_url(get_permalink(get_the_ID())); ?>" id="onclickbutton" class="okbutton button-primary">OK</a>
 			    </div>
 			</div>	
 		</div>
@@ -641,7 +641,7 @@ function initiate_blinkCheckout()
 		];
 		$result_custom = $wpdb->prepare($wpdb->insert($table_name_custom, $custom_data));
 		if(!$result_custom){
-			throw new Exception($wpdb->last_error);
+			throw new Exception(esc_html($wpdb->last_error));
 		}
 
 		$order_id = $wpdb->insert_id;
@@ -1031,7 +1031,7 @@ function initiate_paytmCustomFieldSave() {
 			endforeach;
 
 			if(!$result_custom){
-			throw new Exception($wpdb->last_error);
+			throw new Exception(esc_html($wpdb->last_error));
 			}		
 			$table_name = $wpdb->prefix . 'paytm_donation';
 			$new_table_name = $wpdb->prefix . 'paytm_donation_backup';
