@@ -3,7 +3,7 @@
  * Plugin Name: Paytm Payment Donation
  * Plugin URI: https://paytmpayments.com/docs/wordpress/
  * Description: This plugin allow you to accept donation payments using Paytm. This plugin will add a simple form that user will fill, when he clicks on submit he will redirected to Paytm website to complete his transaction and on completion his payment, paytm will send that user back to your website along with transactions details. This plugin uses server-to-server verification to add additional security layer for validating transactions. Admin can also see all transaction details with payment status by going to "Paytm Payment Details" from menu in admin.
- * Version: 2.3.2
+ * Version: 2.3.3
  * Author: Paytm
  * Author URI: https://paytmpayments.com/payment-gateway
  * Text Domain: Paytm Payments
@@ -28,9 +28,34 @@ add_action('plugins_loaded', 'paytmChecksumInit');
 function enqueue_admin_plugin_assets() {
 	if ( isset($_GET['page']) ) {
 	    if(  $_GET['page'] == 'paytm_options_page' || $_GET['page'] == 'wp_paytm_donation' || $_GET['page'] == 'wp_paytm_donation_user_field_page' ) {
-        wp_enqueue_style('paytmUserField', plugin_dir_url( __FILE__ ) . 'assets/'.PaytmConstantsDonation::PLUGIN_VERSION_FOLDER.'/css/admin/paytm-donation-admin.css', array(), '', '');
-        wp_enqueue_script( 'paytmDonationAdmin_script', plugin_dir_url( __FILE__ ) . 'assets/'.PaytmConstantsDonation::PLUGIN_VERSION_FOLDER.'/js/admin/paytm-donation-admin.js','','', false);
+		wp_enqueue_style(
+			'paytmUserField',
+			plugin_dir_url(__FILE__) . 'assets/' . PaytmConstantsDonation::PLUGIN_VERSION_FOLDER . '/css/admin/paytm-donation-admin.css',
+			array(), // No dependencies
+			PaytmConstantsDonation::PLUGIN_VERSION_FOLDER,
+			'' 
+		);
+		wp_enqueue_script(
+			'paytmDonationAdmin_script',
+			plugin_dir_url( __FILE__ ) . 'assets/' . PaytmConstantsDonation::PLUGIN_VERSION_FOLDER . '/js/admin/paytm-donation-admin.js',
+			array(), // No dependencies
+			PaytmConstantsDonation::PLUGIN_VERSION_FOLDER,
+			false
+		);
+		wp_enqueue_style(
+			'paytmDataTablecss',plugin_dir_url(__FILE__) . 'assets/' . PaytmConstantsDonation::PLUGIN_VERSION_FOLDER . '/css/admin/jquery.dataTables.min.css',
+			array(), // No dependencies
+			PaytmConstantsDonation::PLUGIN_VERSION_FOLDER,
+			'' 
+		);
+		wp_enqueue_script(
+			'paytmDataTablejs',plugin_dir_url( __FILE__ ) . 'assets/' . PaytmConstantsDonation::PLUGIN_VERSION_FOLDER . '/js/admin/jquery.dataTables.min.js',
+			array(), // No dependencies
+			PaytmConstantsDonation::PLUGIN_VERSION_FOLDER,
+			'' 
+		);
     }
+
 }
 }
 
@@ -38,10 +63,10 @@ function enqueue_plugin_assets() {
     // Check if the shortcode is present on the current page
     if (has_shortcode(get_the_content(), 'paytmcheckout')) {
         // Enqueue your CSS file
-        wp_enqueue_style('paytmDonation', plugin_dir_url( __FILE__ ) . 'assets/'.PaytmConstantsDonation::PLUGIN_VERSION_FOLDER.'/css/paytm-donation.css', array(), '', '');
+        wp_enqueue_style('paytmDonation', plugin_dir_url( __FILE__ ) . 'assets/'.PaytmConstantsDonation::PLUGIN_VERSION_FOLDER.'/css/paytm-donation.css', array(), PaytmConstantsDonation::PLUGIN_VERSION_FOLDER, '');
 
         // Enqueue your JS file
-        wp_enqueue_script( 'paytmDonation_script', plugin_dir_url( __FILE__ ) . 'assets/'.PaytmConstantsDonation::PLUGIN_VERSION_FOLDER.'/js/paytm-donation.js','','', true);
+        wp_enqueue_script( 'paytmDonation_script', plugin_dir_url( __FILE__ ) . 'assets/'.PaytmConstantsDonation::PLUGIN_VERSION_FOLDER.'/js/paytm-donation.js','',PaytmConstantsDonation::PLUGIN_VERSION_FOLDER, true);
     }
 }
 
@@ -153,13 +178,13 @@ function paytm_activation() {
 
 function paytm_deactivation() {
 	$settings = paytm_settings_list();
-	foreach ($settings as $setting) {
+	/* foreach ($settings as $setting) {
 		delete_option($setting['name']);
-	}
+	} */
 	$table_name = $wpdb->prefix . 'paytm_donation_order_data';
 	$sql = "DROP TABLE IF EXISTS $table_name";
 	require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-    dbDelta($sql);
+    /* dbDelta($sql); */
 }
 
 function paytm_settings_list(){
@@ -399,7 +424,7 @@ $paytmConfig = '<div class="wrap">
 										foreach ($settings as $setting) {
 											echo esc_attr($setting['name']).',';
 										}
-									$tableEnd .= '" />
+									$tableEnd = '" />
 									</td>
 								</tr>
 
@@ -412,11 +437,11 @@ $paytmConfig = '<div class="wrap">
 		$last_updated = date("d F Y", strtotime(PaytmConstantsDonation::LAST_UPDATED)) .' - '.PaytmConstantsDonation::PLUGIN_VERSION;
 
 		$footer_text = '<div style="text-align: center;"><hr/>';
-		$footer_text .= '<strong>'.__('PHP Version').'</strong> '. PHP_VERSION . ' | ';
-		$footer_text .= '<strong>'.__('cURL Version').'</strong> '. $curl_version . ' | ';
-		$footer_text .= '<strong>'.__('Wordpress Version').'</strong> '. get_bloginfo( 'version' ) . ' | ';
-		$footer_text .= '<strong>'.__('Last Updated').'</strong> '. $last_updated. ' | ';
-		$footer_text .= '<a href="'.PaytmConstantsDonation::PLUGIN_DOC_URL.'" target="_blank">Developer Docs</a>';
+		$footer_text .= sprintf('<strong>%s</strong> %s | ',esc_html__('PHP Version', 'paytm-donation'),PHP_VERSION);
+		$footer_text .= sprintf('<strong>%s</strong> %s | ',esc_html__('cURL Version', 'paytm-donation'),$curl_version);
+		$footer_text .= sprintf('<strong>%s</strong> %s | ',esc_html__('Wordpress Version', 'paytm-donation'),get_bloginfo( 'version' ));
+		$footer_text .= sprintf('<strong>%s</strong> %s | ',esc_html__('Last Updated', 'paytm-donation'),$last_updated);
+		$footer_text .= '<a href="'.PaytmConstantsDonation::PLUGIN_DOC_URL.'" target="_blank">'.esc_html__('Developer Docs', 'paytm-donation').'</a>';
 		$footer_text .= '</div>';
 
 		 
@@ -694,7 +719,7 @@ function paytm_donation_meta_box() {
 	$screens = array( 'paytmcheckout' );
 	
 	foreach ( $screens as $screen ) {
-		add_meta_box(  'myplugin_sectionid', __( 'Paytm', 'myplugin_textdomain' ),'paytm_donation_meta_box_callback', $screen, 'normal','high' );
+		add_meta_box(  'myplugin_sectionid', __( 'Paytm', 'paytm-donation' ),'paytm_donation_meta_box_callback', $screen, 'normal','high' );
 	}
 }
 

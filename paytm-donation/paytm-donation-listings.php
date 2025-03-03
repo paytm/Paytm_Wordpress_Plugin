@@ -7,35 +7,18 @@ class CSVExport
     public function __construct()
     {
         if (isset($_GET['export'])) {
-
+            $total_records = 500;
             global $wpdb;
-            if (isset($_GET['filter_action'])) {
-                $filter1 = '';
-                $filter2 = '';
-                $params = array();
-                
-                if (!empty($_GET['payment_status'])) {
-                    $payment_status = sanitize_text_field($_GET['payment_status']);
-                    $filter1 = "AND payment_status = %s";
-                    $params[] = $payment_status;
+                if(isset($_GET['view-full-data']) && $_GET['view-full-data'] == '1'){
+                    $query = $wpdb->prepare("SELECT pdud.*,pdod.transaction_id FROM " . $wpdb->prefix . "paytm_donation_user_data as pdud LEFT JOIN " . $wpdb->prefix . "paytm_donation_order_data as pdod on pdud.id = pdod.order_id ORDER BY date DESC"); // No need for ARRAY_A here
                 }
-
-                if (!empty($_GET['query'])) {
-                    $string = trim(sanitize_text_field($_GET['query']));
-                    $string = '%' . $string . '%';
-                    $filter2 = "AND (custom_data LIKE %s)";
-                    $params[] = $string;
+                else{
+                    $query = $wpdb->prepare("SELECT pdud.*,pdod.transaction_id FROM " . $wpdb->prefix . "paytm_donation_user_data as pdud LEFT JOIN " . $wpdb->prefix . "paytm_donation_order_data as pdod on pdud.id = pdod.order_id ORDER BY date DESC LIMIT %d, %d",
+                    0,
+                    $total_records
+                );
                 }
-                $query = "SELECT pdud.*,pdod.transaction_id FROM " . $wpdb->prefix . "paytm_donation_user_data as pdud LEFT JOIN " . $wpdb->prefix . "paytm_donation_order_data as pdod on pdud.id = pdod.order_id WHERE 1 " . $filter1 . $filter2 . "  ORDER BY date DESC";
-
-                if (!empty($params)) {
-                    $query = $wpdb->prepare($query, $params);
-                }
-
-                $donationEntries = $wpdb->get_results($query); // No need for ARRAY_A here
-            } else {
-                $donationEntries = $wpdb->get_results("SELECT pdud.*,pdod.transaction_id FROM " . $wpdb->prefix . "paytm_donation_user_data as pdud LEFT JOIN " . $wpdb->prefix . "paytm_donation_order_data as pdod on pdud.id = pdod.order_id ORDER BY date DESC"); // No need for ARRAY_A here
-            }
+                $donationEntries = $wpdb->get_results($query);
 
             $exportArr = [];
 
@@ -117,74 +100,57 @@ function wp_paytm_donation_listings_page() {
 
 <div>
     <h1>Paytm Payment Details</h1>
-    <form id="posts-filter" method="get">
+    <div id="paytm-filter" >
     <div class="alignleft actions">
     <input type="hidden" name="page" value="wp_paytm_donation">
-    <input type="text" name="query" value="<?= isset($_GET['query'])?esc_attr(sanitize_text_field($_GET['query'])):""?>" placeholder="search">
+    <div id="paytm-filter-select" class="dataTables_filter">
     <select name="payment_status" id="payment_status" class="postform">
-    <option value="0" selected="selected">All Payment Status</option>
-    <option class="level-0" value="Complete Payment" <?=(isset($_GET['payment_status']) && $_GET['payment_status']=="Complete Payment")?"selected":""?>>Success</option>
-    <option class="level-0" value="Payment failed" <?=(isset($_GET['payment_status']) && $_GET['payment_status']=="Payment failed")?"selected":""?>>Failed</option>
-    <option class="level-0" value="Pending Payment" <?=(isset($_GET['payment_status']) && $_GET['payment_status']=="Pending Payment")?"selected":""?>>Pending</option>
+    <option value="" selected="selected">All Payment Status</option>
+    <option class="level-0" value="Success" >Success</option>
+    <option class="level-0" value="Failed">Failed</option>
+    <option class="level-0" value="Pending">Pending</option>
     </select>
-    <input type="submit" name="filter_action" id="post-query-submit" class="button" value="Search">
-    
-</form>	
+    </div>
+</div>	
 
     <?php
     global $wpdb;
+    $total_records = 500;
     $records_per_page = 10;
     $page = isset($_GET['cpage']) ? abs((int) sanitize_text_field($_GET['cpage'])) : 1;
     $str = '';
-    $offset = ( $page * $records_per_page ) - $records_per_page;
-    if (isset($_GET['filter_action'])) {
-        $filter1 = '';
-        $filter2 = '';
-        $params = array();
-
-        if (!empty($_GET['payment_status'])) {
-            $payment_status = sanitize_text_field($_GET['payment_status']);
-            $filter1 = "AND payment_status = %s";
-            $params[] = $payment_status;
-            $str .= "&filter_action=true&payment_status=" . urlencode($payment_status);
+   
+        if(isset($_GET['view-full-data']) && $_GET['view-full-data'] == '1'){
+            $query = $wpdb->prepare(
+                "SELECT pdud.*, pdod.transaction_id , pdod.paytm_response
+                FROM {$wpdb->prefix}paytm_donation_user_data as pdud 
+                LEFT JOIN {$wpdb->prefix}paytm_donation_order_data as pdod 
+                ON pdud.id = pdod.order_id 
+                ORDER BY date DESC"
+            );
+        }
+        else{
+            $query = $wpdb->prepare(
+                "SELECT pdud.*, pdod.transaction_id , pdod.paytm_response
+                FROM {$wpdb->prefix}paytm_donation_user_data as pdud 
+                LEFT JOIN {$wpdb->prefix}paytm_donation_order_data as pdod 
+                ON pdud.id = pdod.order_id 
+                ORDER BY date DESC LIMIT %d, %d",
+                0,
+                $total_records
+            );
         }
 
-        if (!empty($_GET['query'])) {
-            $string = trim(sanitize_text_field($_GET['query']));
-            $string = '%' . $string . '%';
-            $filter2 = "AND (custom_data LIKE %s)";
-            $params[] = $string;
-            $str .= "&filter_action=true&query=" . urlencode($string);
-        }
-
-        $query =  "SELECT pdud.*,pdod.transaction_id FROM " . $wpdb->prefix . "paytm_donation_user_data as pdud LEFT JOIN " . $wpdb->prefix . "paytm_donation_order_data as pdod on pdud.id = pdod.order_id WHERE 1 " . $filter1 . $filter2 . "  ORDER BY date DESC LIMIT " . intval($offset) . ", " . intval($records_per_page);
-        //$query ="SELECT pdud.*,pdod.transaction_id FROM " . $wpdb->prefix . "paytm_donation_user_data as pdud LEFT JOIN " . $wpdb->prefix . "paytm_donation_order_data as pdod on pdud.id = pdod.order_id ORDER BY date DESC LIMIT " . intval($offset) . ", " . intval($records_per_page);
-
-        /* echo $query;
-        die(); */
-        
-        if (!empty($params)) {
-            $query = $wpdb->prepare($query, $params);
-        }
-        $donationEntries = $wpdb->get_results($query, ARRAY_A);
-
-        $total_query =  "SELECT COUNT(id)  FROM " . $wpdb->prefix . "paytm_donation_user_data WHERE 1 " . $filter1 . $filter2;
-        if (!empty($params)) {
-            $total_query = $wpdb->prepare($total_query, $params);
-        }
-        $total = $wpdb->get_var($total_query);
-    } else {
-        //$query = "SELECT * FROM " . $wpdb->prefix . "paytm_donation_user_data ORDER BY date DESC LIMIT " . intval($offset) . ", " . intval($records_per_page);
-        $query ="SELECT pdud.*,pdod.transaction_id FROM " . $wpdb->prefix . "paytm_donation_user_data as pdud LEFT JOIN " . $wpdb->prefix . "paytm_donation_order_data as pdod on pdud.id = pdod.order_id ORDER BY date DESC LIMIT " . intval($offset) . ", " . intval($records_per_page);
-        /* echo $query;
-        die(); */
         $donationEntries = $wpdb->get_results($query);
         $total = $wpdb->get_var("SELECT COUNT(id)  FROM " . $wpdb->prefix . "paytm_donation_user_data");
-    }
+    
 
 
 ?>
 <?php if (count($donationEntries) > 0) {     ?>
+   <div class="paytm-view-full-data"> <label for="view-full-data"><input type="checkbox" id="view-full-data" name="view-full-data" value="1" <?php echo isset($_GET['view-full-data']) && $_GET['view-full-data'] == '1' ? 'checked' : ''; ?>  >View Full Data <br />
+<span style="font-size: 12px;">Note: By Default, only <?php echo esc_html($total_records); ?> records are shown. Check this option to view all records.</span></label>
+</div>
 <a href="<?php echo esc_url(admin_url().''.'/admin.php?page=wp_paytm_donation&export=true'.$str); ?>" class="paytm-export">Export</a>
 <?php } ?>
 </div>
@@ -201,8 +167,8 @@ if ($oldLastId!='') {?>
             <tr>
             <th>Order Id</th>
             <th>Name</th>
-            <th>Email</th>
-            <th>Phone</th>
+            <!-- <th>Email</th> -->
+            <!-- <th>Phone</th> -->
             <th>Donation</th>
             <th>Payment Status</th>
             <th>Transaction ID</th>
@@ -286,29 +252,37 @@ if ($oldLastId!='') {?>
                     $allowedposttags['option']        = $allowed_atts;
 
                     $decodeData = json_decode($row['custom_data']);?>
-                    <th><?php echo wp_kses($row['id'], $allowedposttags) ?></th>
-                    <th><?php echo wp_kses($decodeData[0]->value, $allowedposttags); ?></th>
-                    <th><?php echo wp_kses($decodeData[1]->value, $allowedposttags); ?></th>
-                    <th><?php echo wp_kses($decodeData[2]->value, $allowedposttags); ?></th>
-                    <th><?php echo wp_kses($decodeData[3]->value, $allowedposttags); ?></th>
+                    <th><?php echo esc_html($row['id']); ?></th>
+                    <th><?php echo esc_html($decodeData[0]->value); ?></th>
+                    <!-- <th><?php echo esc_html($decodeData[1]->value); ?></th> -->
+                    <!-- <th><?php echo esc_html($decodeData[2]->value); ?></th> -->
+                    <th><?php echo esc_html($decodeData[3]->value); ?></th>
 
-                    <?php if ($row['payment_status'] == "Complete Payment") { ?>
-
-                            <th><span class="label label-success">Success</span></th>
- 
-                    <?php } else if ($row['payment_status'] == "Pending Payment") { ?>
-                        <th><span class="label label-warning">Pending</span></th>
-
-                    <?php } else if ($row['payment_status'] == "Payment failed") { ?>
-                        <th><span class="label label-danger">Failed</span></th>
-                    <?php } else { ?>
-                        <th><span class="label label-default">NA</span></th>
-                    <?php } ?>
+                    <?php 
+                    $status_class = '';
+                    $status_text = 'NA';
+                    
+                    switch ($row['payment_status']) {
+                        case 'Complete Payment':
+                            $status_class = 'label-success';
+                            $status_text = 'Success';
+                            break;
+                        case 'Pending Payment':
+                            $status_class = 'label-warning';
+                            $status_text = 'Pending';
+                            break;
+                        case 'Payment failed':
+                            $status_class = 'label-danger';
+                            $status_text = 'Failed';
+                            break;
+                    }
+                    ?>
+                    <th><span class="label <?php echo esc_attr($status_class); ?>"><?php echo esc_html($status_text); ?></span></th>
                         
-                        <th><?php echo  wp_kses($row['transaction_id']?$row['transaction_id']:"NA", $allowedposttags); ?></th>
-                        <th><?php echo  wp_kses($row['date'], $allowedposttags) ?></th>
+                        <th><?php echo esc_html($row['transaction_id'] ?: 'NA'); ?></th>
+                        <th><?php echo esc_html($row['date']); ?></th>
                           
-                          <td><button class="btnPrimary" onclick="displayFullDetails(<?php echo  wp_kses($row['id'], $allowedposttags);?>)" id="myBtn">Full Details</button></td>
+                          <td><button class="btnPrimary" onclick="displayFullDetails(<?php echo esc_js($row['id']); ?>)" id="myBtn">Full Details</button></td>
                           </tr>
                     <?php } } else { ?>
                     <tr>
@@ -317,21 +291,6 @@ if ($oldLastId!='') {?>
                     <?php } ?>
                     </tbody>
     </table>	
-</div>
-<?php
-    $pagination = paginate_links(array(
-                'base' => add_query_arg('cpage', '%#%' ),
-                'format' => '',
-                'prev_text' => __('Previous'),
-                'next_text' => __('Next'),
-                'total' => ceil($total / $records_per_page),
-                'current' => $page
-        )
-    );
-?>
-<div class="donation-pagination">
-    <?php echo wp_kses($pagination, $allowedposttags); ?>
-    </div>
 </div>
 
 <script>
@@ -356,9 +315,12 @@ function displayFullDetails(order_id) {
         dynamic_content += '<tr><td>'+JSON.parse(res['custom_data'])[i]['name'].replace(/_/g, ' ')+': </td>'+'<td>'+JSON.parse(res['custom_data'])[i]['value']+'</td></tr>';
     }
     dynamic_content +='<tr><td>Payment Status:</td><td>'+res['payment_status']+'</td></tr>';
-    dynamic_content +='<tr><td>Date:</td><td>'+res['date']+'</td></tr></table>';
+    dynamic_content +='<tr><td>Date:</td><td>'+res['date']+'</td></tr>';
+    const formattedJson = JSON.stringify(JSON.parse(res['paytm_response']), null, 2);
+    dynamic_content +='<tr><td>Payment Data</td><td class="paytm-response"><pre>'+formattedJson+'</pre></td></tr></table>';
 
     document.getElementById('paytm_dynamic_content').innerHTML = dynamic_content;
+    
 
   modal.style.display = "block";
 }
@@ -389,6 +351,63 @@ jQuery('.refresh_history_record').on('click', function() {
     });
     setTimeout(function(){window.location.reload(true);}, 1000);
  
+});
+jQuery(document).ready(function($) {
+    var table = jQuery('#paytm-table').DataTable(
+        {
+            "order": [[0, "desc"]],
+            "autoWidth": true,
+            "pageLength": 20
+        }
+    );  // Initialize DataTable
+    var payment_status = $('#payment_status');
+
+    // Apply filter when dropdown changes
+    payment_status.on('change', function() {
+        var selectedRole = $(this).val();
+        table.column(3).search(selectedRole).draw();
+    });
+    $('#paytm-filter-select').insertAfter('#paytm-table_filter');
+    
+    // Add confirmation dialog for checkbox
+    $('#view-full-data').on('change', function(e) {
+        var checkbox = $(this);
+        if (checkbox.is(':checked')) {
+            if (confirm('Are you sure you want to view all records? This may take longer to load.')) {
+                // Get current URL and append view-full-data parameter
+                var currentUrl = window.location.href;
+                var separator = currentUrl.indexOf('?') !== -1 ? '&' : '?';
+                window.location.href = currentUrl + separator + 'view-full-data=1';
+            } else {
+                e.preventDefault();
+                checkbox.prop('checked', false);
+            }
+        }
+        else{
+            var currentUrl = window.location.href;
+            var separator = currentUrl.indexOf('?') !== -1 ? '&' : '?';
+            window.location.href = currentUrl + separator + 'view-full-data=0';
+        }
+    });
+    
+    // Export button click handler
+    $('.paytm-export').on('click', function(e) {
+        e.preventDefault();
+        
+        var exportUrl = $(this).attr('href');
+        var isViewAll = $('#view-full-data').is(':checked');
+        
+        // Add view-full-data parameter if checked
+        if (isViewAll) {
+            var separator = exportUrl.indexOf('?') !== -1 ? '&' : '?';
+            exportUrl += separator + 'view-full-data=1';
+        }
+        
+        // Show confirmation dialog
+        if (confirm('Are you sure you want to export the data?')) {
+            window.open(exportUrl, '_blank');
+        }
+    });
 });
 
 <?php if ($oldLastId!='') {?>

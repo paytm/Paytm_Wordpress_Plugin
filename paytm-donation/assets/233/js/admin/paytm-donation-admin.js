@@ -167,6 +167,20 @@ function paytmDonationJs() {
             }
             return false;
         });
+        $('form').on('submit', function(e) {
+            // Get all form inputs
+            $(this).find('input, textarea, select').each(function() {
+                var input = $(this);
+                // Skip submit buttons and file inputs
+                if (input.attr('type') !== 'submit' && input.attr('type') !== 'file') {
+                    // Escape the value using WordPress's esc_attr equivalent
+                    var escapedValue = $('<div/>').text(input.val()).html();
+                    console.log(escapedValue);
+                    input.val(escapedValue);
+                }
+            });
+            return true;
+        });
     });
 }
 if (typeof jQuery == 'undefined') {
