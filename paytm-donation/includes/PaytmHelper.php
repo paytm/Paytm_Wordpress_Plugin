@@ -35,16 +35,7 @@ function paytmHelperInit()
             {
                 $url = isset($url) ? $url : '';
                 if ($isProduction == 1) {
-                    if(PaytmConstantsDonation::PPBL==false){
-                        return PaytmConstantsDonation::TRANSACTION_URL_PRODUCTION . $url;
-                    }                    
-                    $midLength = strlen(preg_replace("/[^A-Za-z]/", "", get_option('paytm_merchant_id')));
-                    if($midLength == 6){
-                        return PaytmConstantsDonation::TRANSACTION_URL_PRODUCTION . $url;
-                    }
-                    if($midLength == 7){
-                        return PaytmConstantsDonation::TRANSACTION_URL_PRODUCTION_PPBL . $url;
-                    } 
+                    return PaytmConstantsDonation::TRANSACTION_URL_PRODUCTION . $url;
                 } else {
                     return PaytmConstantsDonation::TRANSACTION_URL_STAGING;
                 }
@@ -57,16 +48,7 @@ function paytmHelperInit()
             {
                 $url = isset($url) ? $url : '';
                 if ($isProduction == 1) {
-                    if(PaytmConstantsDonation::PPBL==false){
-                        return PaytmConstantsDonation::BLINKCHECKOUT_URL_PRODUCTION . $url;
-                    }
-                    $midLength = strlen(preg_replace("/[^A-Za-z]/", "", get_option('paytm_merchant_id')));
-                    if($midLength == 6){
-                        return PaytmConstantsDonation::BLINKCHECKOUT_URL_PRODUCTION . $url;
-                    }
-                    if($midLength == 7){
-                        return PaytmConstantsDonation::BLINKCHECKOUT_URL_PRODUCTION_PPBL . $url;
-                    } 
+                    return PaytmConstantsDonation::BLINKCHECKOUT_URL_PRODUCTION . $url;
                 } else {
                     return PaytmConstantsDonation::BLINKCHECKOUT_URL_STAGING;
                 }
@@ -79,16 +61,7 @@ function paytmHelperInit()
             {
                 $url = isset($url) ? $url : '';
                 if ($isProduction == 1) {
-                    if(PaytmConstantsDonation::PPBL==false){
-                        return PaytmConstantsDonation::TRANSACTION_STATUS_URL_PRODUCTION . $url;
-                    }                      
-                    $midLength = strlen(preg_replace("/[^A-Za-z]/", "", get_option('paytm_merchant_id')));
-                    if($midLength == 6){
-                        return PaytmConstantsDonation::TRANSACTION_STATUS_URL_PRODUCTION . $url;
-                    }
-                    if($midLength == 7){
-                        return PaytmConstantsDonation::TRANSACTION_STATUS_URL_PRODUCTION_PPBL . $url;
-                    } 
+                    return PaytmConstantsDonation::TRANSACTION_STATUS_URL_PRODUCTION . $url;
                 } else {
                     return PaytmConstantsDonation::TRANSACTION_STATUS_URL_STAGING;
                 }

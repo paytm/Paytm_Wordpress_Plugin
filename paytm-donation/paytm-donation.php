@@ -3,8 +3,11 @@
  * Plugin Name: Paytm Payment Donation
  * Plugin URI: https://paytmpayments.com/docs/wordpress/
  * Description: This plugin allow you to accept donation payments using Paytm. This plugin will add a simple form that user will fill, when he clicks on submit he will redirected to Paytm website to complete his transaction and on completion his payment, paytm will send that user back to your website along with transactions details. This plugin uses server-to-server verification to add additional security layer for validating transactions. Admin can also see all transaction details with payment status by going to "Paytm Payment Details" from menu in admin.
- * Version: 2.3.3
+ * Version: 2.3.4
  * Author: Paytm
+ * Requires at least: 4.0.1
+ * Tested up to: 7.0
+ * Requires PHP: 7.4
  * Author URI: https://paytmpayments.com/payment-gateway
  * Text Domain: Paytm Payments
  */
@@ -277,7 +280,9 @@ if (is_admin()) {
 
 
 function paytm_admin_menu() {
+	/* add_menu_page('Paytm Donation', 'Paytm Donation', 'manage_options', 'paytm_options_page', 'paytm_options_page', 'dashicons-heart'); */
 	add_menu_page('Paytm Donation', 'Paytm Donation', 'manage_options', 'paytm_options_page', 'paytm_options_page', plugin_dir_url(__FILE__).'images/logo.png');
+
 
 	add_submenu_page('paytm_options_page', 'Paytm Donation Settings', 'Settings', 'manage_options', 'paytm_options_page');
 
@@ -290,7 +295,15 @@ function paytm_admin_menu() {
 	require_once(dirname(__FILE__) . '/paytm-donation-user-field.php');	
 }
 
+add_action('admin_head', 'paytm_admin_menu_icon_css');
 
+function paytm_admin_menu_icon_css() {
+    ?>
+    <style>
+        #toplevel_page_paytm_options_page .wp-menu-image img { width: 40px; height: 40px; padding-top: 0px !important; margin-top: -3px !important; }
+    </style>
+    <?php
+}
 function paytm_options_page() {
 
 	//Echoing HTML safely start
